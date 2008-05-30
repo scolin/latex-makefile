@@ -44,98 +44,6 @@ VIEW_POSTSCRIPT	?= gv
 VIEW_PDF	?= xpdf
 VIEW_GRAPHICS	?= display
 
-#
-# BSD SED NOTES
-#
-# BSD SED is not very nice compared to GNU sed, but it is the most
-# commonly-invoked sed on Macs (being based on BSD), so we have to cater to
-# it or require people to install GNU sed.  It seems like the GNU
-# requirement isn't too bad since this makefile is really a GNU makefile,
-# but apparently GNU sed is much less common than GNU make in general, so
-# I'm supporting it here.
-#
-# Sad experience has taught me the following about BSD sed:
-#
-# 	* \+ is not understood to mean \{1,\}
-# 	* \| is meaningless (does not branch)
-# 	* \n cannot be used as a substitution character
-# 	* ? does not mean \{0,1\}, but is literal
-# 	* a\ works, but only reliably for a single line if subsequent lines
-# 		have forward slashes in them (as is the case in postscript)
-#
-# For more info (on the Mac) you can consult
-#
-# man -M /usr/share/man re_format
-#
-# And look for the word "Obsolete" near the bottom.
-
-#
-# EXTERNAL PROGRAM DOCUMENTATION SCRIPT
-#
-
-# $(call output-all-programs,[<output file>])
-define output-all-programs
-	[ -f '$(this_file)' ] && \
-	$(SED) \
-		-e '/^[[:space:]]*#[[:space:]]*EXTERNAL PROGRAMS:/,/^$$/!d' \
-		-e '/EXTERNAL PROGRAMS/d' \
-		-e '/^$$/d' \
-		-e '/^[[:space:]]*#/i\ '\
-		-e 's/^[[:space:]]*#[[:space:]][^=]*//' \
-		$(this_file) $(if $1,> '$1',) || \
-	$(ECHO) "Cannot determine the name of this makefile."
-endef
-
-# If they misspell gray, it should still work.
-GRAY	?= $(call get-default,$(GREY),)
-
-#
-# Utility Functions and Definitions
-#
-
-# While not exactly a make function, this vim macro is useful.  It takes a
-# verbatim sed script and converts each line to something suitable in a command
-# context.  Just paste the script's contents into the editor, yank this into a
-# register (starting at '0') and run the macro once for each line of the
-# original script:
-#
-# 0i	-e :s/\$/$$/eg:s/'/'"'"'/eg^Ela'A' \:nohj
-
-# Test that a file exists
-# $(call test-exists,file)
-test-exists		= [ -e '$1' ]
-
-# Copy file1 to file2 only if file2 doesn't exist or they are different
-# $(call copy-if-different,sfile,dfile)
-copy-if-different	= $(call test-different,$1,$2) && $(CP) '$1' '$2'
-copy-if-exists		= $(call test-exists,$1) && $(CP) '$1' '$2'
-move-if-different	= $(call test-different,$1,$2) && $(MV) '$1' '$2'
-replace-if-different-and-remove	= \
-	$(call test-different,$1,$2) && $(MV) '$1' '$2' || $(RM) '$1'
-
-# Note that $(DIFF) returns success when the files are the SAME....
-# $(call test-different,sfile,dfile)
-test-different		= ! $(DIFF) -q '$1' '$2' &>/dev/null
-test-exists-and-different	= \
-	$(call test-exists,$2) && $(call test-different,$1,$2)
-
-# Return value 1, or value 2 if value 1 is empty
-# $(call get-default,<possibly empty arg>,<default value if empty>)
-get-default	= $(if $1,$1,$2)
-
-# Gives a reassuring message about the failure to find include files
-# $(call include-message,<list of include files>)
-define include-message
-$(strip \
-$(if $(filter-out $(wildcard $1),$1),\
-	$(shell $(ECHO) \
-	"$(C_INFO)NOTE: You may ignore warnings about the"\
-	"following files:" >&2;\
-	$(ECHO) >&2; \
-	$(foreach s,$(filter-out $(wildcard $1),$1),$(ECHO) '     $s' >&2;)\
-	$(ECHO) "$(C_RESET)" >&2)
-))
-endef
 # Characters that are hard to specify in certain places
 space		:= $(empty) $(empty)
 colon		:= \:
@@ -144,9 +52,6 @@ comma		:= ,
 # Useful shell definitions
 sh_true		:= :
 sh_false	:= ! :
-
-# Clear out the standard interfering make suffixes
-.SUFFIXES:
 
 # Turn command echoing back on with VERBOSE=1
 ifndef VERBOSE
@@ -186,14 +91,6 @@ reset	:= $(shell $(TPUT) sgr0)
 LATEX_COLOR_WARNING	?= magenta
 LATEX_COLOR_ERROR	?= red
 LATEX_COLOR_INFO	?= green
-LATEX_COLOR_UNDERFULL	?= magenta
-LATEX_COLOR_OVERFULL	?= red bold
-LATEX_COLOR_PAGES	?= bold
-LATEX_COLOR_BUILD	?= blue
-LATEX_COLOR_GRAPHIC	?= yellow
-LATEX_COLOR_DEP		?= green
-LATEX_COLOR_SUCCESS	?= green bold
-LATEX_COLOR_FAILURE	?= red bold
 
 # Gets the real color from a simple textual definition like those above
 # $(call get-color,ALL_CAPS_COLOR_NAME)
@@ -206,14 +103,6 @@ get-color	= $(subst $(space),,$(foreach c,$(LATEX_COLOR_$1),$($c)))
 C_WARNING	:= $(call get-color,WARNING)
 C_ERROR		:= $(call get-color,ERROR)
 C_INFO		:= $(call get-color,INFO)
-C_UNDERFULL	:= $(call get-color,UNDERFULL)
-C_OVERFULL	:= $(call get-color,OVERFULL)
-C_PAGES		:= $(call get-color,PAGES)
-C_BUILD		:= $(call get-color,BUILD)
-C_GRAPHIC	:= $(call get-color,GRAPHIC)
-C_DEP		:= $(call get-color,DEP)
-C_SUCCESS	:= $(call get-color,SUCCESS)
-C_FAILURE	:= $(call get-color,FAILURE)
 C_RESET		:= $(reset)
 
 #
@@ -230,155 +119,76 @@ $(error $(C_ERROR)Clean and build targets specified together$(C_RESET)))
 endif
 endif
 
-#
-# VARIABLE DECLARATIONS
-#
-
-
-# Files of interest
-all_files.tex		:= $(wildcard *.tex)
-
-# Patterns to never be allowed as source targets
-ignore_patterns	:= %._include_
-
-# Patterns allowed as source targets but not included in 'all' builds
-nodefault_patterns := %._nobuild_ $(ignore_patterns)
-
-# Utility function for getting targets suitable building
-# $(call filter-buildable,suffix)
-filter-buildable	= \
-	$(filter-out $(addsuffix .$1,$(ignore_patterns)),$(all_files.$1))
-
-# Utility function for getting targets suitable for 'all' builds
-# $(call filter-default,suffix)
-filter-default		= \
-	$(filter-out $(addsuffix .$1,$(nodefault_patterns)),$(all_files.$1))
-
-# Top level sources that can be built even when they are not by default
-files.tex	:= $(filter-out %._gray_.tex,$(call filter-buildable,tex))
-
-# Top level sources that are built by default targets
-default_files.tex	:= $(filter-out %._gray_.tex,$(call filter-default,tex))
-
-# Utility function for creating larger lists of files
-# $(call concat-files,suffixes,[prefix])
-concat-files	= $(foreach s,$1,$($(if $2,$2_,)files.$s))
-
-# Useful file groupings
-all_files_source	:= $(call concat-files,tex,all)
-
-default_files_source	:= $(call concat-files,tex,default)
-
-files_source	:= $(call concat-files,tex)
-
-# Utility function for obtaining stems
-# $(call get-stems,suffix,[prefix])
-get-stems	= $(sort $($(if $2,$2_,)files.$1:%.$1=%))
-
-# List of all stems (including ._include_ and ._nobuild_ file stems)
-all_stems.tex		:= $(call get-stems,tex,all)
-
-# List of all default stems (all default PDF targets):
-default_stems.tex		:= $(call get-stems,tex,default)
-
-# List of all stems (all possible bare PDF targets created here):
-stems.tex		:= $(call get-stems,tex)
-
-# Utility function for creating larger lists of stems
-# $(call concat-stems,suffixes,[prefix])
-concat-stems	= $(sort $(foreach s,$1,$($(if $2,$2_,)stems.$s)))
-
-all_stems_source	:= $(call concat-stems,tex,all)
-
-default_stems_source	:= $(call concat-stems,tex,default)
-
-stems_source		:= $(call concat-stems,tex)
-
-# Calculate names that can generate the need for an include file.  We can't
-# really do this with patterns because it's too easy to screw up, so we create
-# an exhaustive list.
-allowed_source_suffixes	:= \
-	pdf \
-	ps \
-	dvi \
-	bbl \
-	aux \
-	aux.make \
-	d \
-	tex \
-	auxbbl.make \
-	_graphics \
-	_show
-allowed_source_patterns		:= $(addprefix %.,$(allowed_source_suffixes))
-
-
-# All targets allowed to build documents
-allowed_source_targets	:= \
-	$(foreach suff,$(allowed_source_suffixes),\
-	$(addsuffix .$(suff),$(stems_ssg)))
-
-# All targets allowed to build graphics
-allowed_graphic_targets	:= \
-	$(foreach suff,$(allowed_graphic_suffixes),\
-	$(addsuffix .$(suff),$(stems_gg)))
-
-# All targets that build multiple documents (like 'all')
-allowed_batch_source_targets	:= \
-	all \
-	all-pdf \
-	all-ps \
-	all-dvi \
-	all-bbl \
-	show
-
-# Now we figure out which stuff is available as a make target for THIS RUN.
-real_goals	:= $(call get-default,$(filter-out _includes,$(MAKECMDGOALS)),\
-			all)
-
-specified_source_targets	:= $(strip \
-	$(filter $(allowed_source_targets) $(stems_ssg),$(real_goals)) \
-	)
-
-specified_batch_source_targets	:= $(strip \
-	$(filter $(allowed_batch_source_targets),$(real_goals)) \
-	)
-
-# Determine which .d files need including from the information gained above.
-# This is done by first checking whether a batch target exists.  If it does,
-# then all *default* stems are used to create possible includes (nobuild need
-# not apply for batch status).  If no batch targets exist, then the individual
-# targets are considered and appropriate includes are taken from them.
-source_stems_to_include	:= \
-	$(sort\
-	$(if $(specified_batch_source_targets),\
-		$(default_stems_ss),\
-		$(foreach t,$(specified_source_targets),\
-		$(foreach p,$(allowed_source_patterns),\
-			$(patsubst $p,%,$(filter $p $(stems_ssg),$t)) \
-		)) \
-	))
-
-# All dependencies for the 'all' targets
-all_pdf_targets		:= $(addsuffix .pdf,$(stems_ssg))
-all_ps_targets		:= $(addsuffix .ps,$(stems_ssg))
-all_dvi_targets		:= $(addsuffix .dvi,$(stems_ssg))
-all_tex_targets		:= $(addsuffix .tex,$(stems_sg))
-all_d_targets		:= $(addsuffix .d,$(stems_ssg))
-
-default_pdf_targets	:= $(addsuffix .pdf,$(default_stems_ss))
-default_ps_targets	:= $(addsuffix .ps,$(default_stems_ss))
-default_dvi_targets	:= $(addsuffix .dvi,$(default_stems_ss))
-
 # Extensions generated by LaTeX invocation that can be removed when complete
 rm_ext		:= log,aux,dvi,ps,pdf,blg,bbl,out,nav,snm,toc,lof,lot,pfg,fls,vrb
 backup_patterns	:= *.bak
 
-# All LaTeX-generated files that can be safely removed
-rm_tex		:= \
-	$(addsuffix .{$(rm_ext)},$(all_stems_source)) \
-	$(addsuffix .{$(rm_ext)$(comma)tex},$(all_stems_sg)) \
-	$(addsuffix .log,$(all_ps_targets) $(all_pdf_targets)) \
-	$(addsuffix .*.log,$(stems_graphic)) \
+############################################################################
+
+#
+# Utility Functions and Definitions
+#
+
+#
+# BSD SED NOTES
+#
+# BSD SED is not very nice compared to GNU sed, but it is the most
+# commonly-invoked sed on Macs (being based on BSD), so we have to cater to
+# it or require people to install GNU sed.  It seems like the GNU
+# requirement isn't too bad since this makefile is really a GNU makefile,
+# but apparently GNU sed is much less common than GNU make in general, so
+# I'm supporting it here.
+#
+# Sad experience has taught me the following about BSD sed:
+#
+# 	* \+ is not understood to mean \{1,\}
+# 	* \| is meaningless (does not branch)
+# 	* \n cannot be used as a substitution character
+# 	* ? does not mean \{0,1\}, but is literal
+# 	* a\ works, but only reliably for a single line if subsequent lines
+# 		have forward slashes in them (as is the case in postscript)
+#
+# For more info (on the Mac) you can consult
+#
+# man -M /usr/share/man re_format
+#
+# And look for the word "Obsolete" near the bottom.
+
+# Test that a file exists
+# $(call test-exists,file)
+test-exists		= [ -e '$1' ]
+
+# Copy file1 to file2 only if file2 doesn't exist or they are different
+# $(call copy-if-different,sfile,dfile)
+copy-if-different	= $(call test-different,$1,$2) && $(CP) '$1' '$2'
+copy-if-exists		= $(call test-exists,$1) && $(CP) '$1' '$2'
+move-if-different	= $(call test-different,$1,$2) && $(MV) '$1' '$2'
+replace-if-different-and-remove	= \
+	$(call test-different,$1,$2) && $(MV) '$1' '$2' || $(RM) '$1'
+
+# Note that $(DIFF) returns success when the files are the SAME....
+# $(call test-different,sfile,dfile)
+test-different		= ! $(DIFF) -q '$1' '$2' &>/dev/null
+test-exists-and-different	= \
+	$(call test-exists,$2) && $(call test-different,$1,$2)
+
+# Return value 1, or value 2 if value 1 is empty
+# $(call get-default,<possibly empty arg>,<default value if empty>)
+get-default	= $(if $1,$1,$2)
+
+# Gives a reassuring message about the failure to find include files
+# $(call include-message,<list of include files>)
+define include-message
+$(strip \
+$(if $(filter-out $(wildcard $1),$1),\
+	$(shell $(ECHO) \
+	"$(C_INFO)NOTE: You may ignore warnings about the"\
+	"following files:" >&2;\
+	$(ECHO) >&2; \
+	$(foreach s,$(filter-out $(wildcard $1),$1),$(ECHO) '     $s' >&2;)\
+	$(ECHO) "$(C_RESET)" >&2)
+))
+endef
 
 #
 # Functions used in generating output
@@ -506,13 +316,13 @@ color_tex	:= \
 	$(SED) \
 	-e '/^[[:space:]]*Output written/{' \
 	-e ' s/.*(\([^)]\{1,\}\)).*/Success!  Wrote \1/' \
-	-e ' s/[[:digit:]]\{1,\}/$(C_PAGES)&$(C_RESET)/g' \
-	-e ' s/Success!/$(C_SUCCESS)&$(C_RESET)/g' \
+	-e ' s/[[:digit:]]\{1,\}/$(C_INFO)&$(C_RESET)/g' \
+	-e ' s/Success!/$(C_INFO)&$(C_RESET)/g' \
 	-e '}' \
 	-e 's/^! *LaTeX Error:.*/$(C_ERROR)&$(C_RESET)/' -e 't' \
 	-e 's/^LaTeX Warning:.*/$(C_WARNING)&$(C_RESET)/' -e 't' \
-	-e 's/^Underfull.*/$(C_UNDERFULL)&$(C_RESET)/' -e 't' \
-	-e 's/^Overfull.*/$(C_OVERFULL)&$(C_RESET)/' -e 't' \
+	-e 's/^Underfull.*/$(C_WARNING)&$(C_RESET)/' -e 't' \
+	-e 's/^Overfull.*/$(C_WARNING)&$(C_RESET)/' -e 't' \
 	$(if $(VERBOSE),,-e 'd')
 
 # Colorize BibTeX output.
@@ -534,6 +344,9 @@ color_bib	:= \
 	-e '/(.*error.*)/s//$(C_ERROR)&$(C_RESET)/' \
 	$(if $(VERBOSE),,-e 'd')
 
+
+# $(call latex-color-log,<LaTeX stem>)
+latex-color-log	= $(color_tex) $1.log
 
 # Make beamer output big enough to print on a full page.  Landscape doesn't
 # seem to work correctly.
@@ -557,24 +370,11 @@ endef
 # $(call latex,<tex file>,[<extra LaTeX args>])
 run-latex	= $(LATEX) --interaction=batchmode $(if $2,$2,) $1 > /dev/null
 
-# $(call latex-color-log,<LaTeX stem>)
-latex-color-log	= $(color_tex) $1.log
-
 # BibTeX invocations
 #
 # $(call run-bibtex,<tex stem>)
 run-bibtex	= $(BIBTEX) $1 | $(color_bib)
 
-
-
-# Converts graphviz .dot files into .eps files
-# Grayscale is not directly supported by dot, so we pipe it through fig2dev in
-# that case.
-# $(call convert-dot,<dot file>,<eps file>,<log file>,[gray])
-define convert-dot
-$(DOT) -Tps '$1' 2>'$3' $(if $4,| $(call kill-ps-color)) > '$2'; \
-$(call colorize-dot-errors,$3)
-endef
 
 # Convert DVI to Postscript
 # $(call make-ps,<dvi file>,<ps file>,<log file>,[<paper size>])
@@ -591,12 +391,17 @@ make-pdf	= \
 
 # Display information about what is being done
 # $(call echo-build,<output file>,[<run number>])
-echo-build	= $(ECHO) "$(C_BUILD)= $1 --> $2$(if $3, ($3),) =$(C_RESET)"
-echo-dep	= $(ECHO) "$(C_DEP)= $1 --> $2 =$(C_RESET)"
+echo-build	= $(ECHO) "$(C_INFO)= $1 --> $2$(if $3, ($3),) =$(C_RESET)"
+echo-dep	= $(ECHO) "$(C_INFO)= $1 --> $2 =$(C_RESET)"
 
 # Display a list of something
 # $(call echo-list,<values>)
 echo-list	= for x in $1; do $(ECHO) "$$x"; done
+
+############################################################################
+
+# Clear out the standard interfering make suffixes
+.SUFFIXES:
 
 #
 # DEFAULT TARGET
