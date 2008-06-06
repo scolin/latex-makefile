@@ -1,20 +1,27 @@
 
 # Copyright 2008 Samuel Colin
+# Copyright 2004 Chris Monson (monpublic@gmail.com)
 
-# This file is based off Chris Monson's Makefile:
+# This file is based on Chris Monson's Makefile:
 # http://www.bouncingchairs.net/oss
 # As such, parts derived directly from it are licenced under the 
 # GPLv2 (http://www.gnu.org/copyleft/gpl.html)
 # under the following terms, copied verbatim from the original Makefile
 # 
-# Parts I added are licenced GPLv2 as well. Things may evolve later on.
+# Parts I added are licenced GPLv2 as well
+
+ifndef FILE
+  FILE=$(basename $(firstword $(shell grep -l documentclass *.tex)))
+  documentclass=$(shell grep documentclass $(FILE).tex)
+else
+  documentclass=$(shell grep documentclass $(FILE).tex)
+endif
 
 HEVEAFLAGS ?= -fixpoint
 BARELATEX ?= pdflatex
 BIBFLAGS ?= -min-crossrefs=1
 #VERBOSE := y
 
-#
 # EXTERNAL PROGRAMS:
 # = ESSENTIAL PROGRAMS =
 # == Basic Shell Utilities ==
@@ -33,6 +40,7 @@ UNIQ		:= uniq
 WHICH		:= which
 XARGS		:= xargs
 # == LaTeX (tetex-provided) ==
+# TODO: TeXlive now ?
 BIBTEX          := bibtex $(BIBFLAGS)
 DVIPS		:= dvips
 LATEX		:= $(BARELATEX) -recorder -interaction=nonstopmode $(TEXFLAGS)
@@ -58,6 +66,7 @@ colon		:= \:
 comma		:= ,
 
 # Useful shell definitions
+# TODO: bashisms !!!
 sh_true		:= :
 sh_false	:= ! :
 
@@ -96,9 +105,9 @@ reset	:= $(shell $(TPUT) sgr0)
 #
 # User-settable definitions
 #
-LATEX_COLOR_WARNING	?= magenta
-LATEX_COLOR_ERROR	?= red
-LATEX_COLOR_INFO	?= green
+LATEX_COLOR_WARNING	?= red
+LATEX_COLOR_ERROR	?= red bold
+LATEX_COLOR_INFO	?= bold
 
 # Gets the real color from a simple textual definition like those above
 # $(call get-color,ALL_CAPS_COLOR_NAME)
@@ -113,14 +122,10 @@ C_ERROR		:= $(call get-color,ERROR)
 C_INFO		:= $(call get-color,INFO)
 C_RESET		:= $(reset)
 
-#
-# PRE-BUILD TESTS
-#
-
 # Check that clean targets are not combined with other targets (weird things
 # happen, and it's not easy to fix them)
-hascleangoals	:= $(if $(sort $(filter clean clean-%,$(MAKECMDGOALS))),1)
-hasbuildgoals	:= $(if $(sort $(filter-out clean clean-%,$(MAKECMDGOALS))),1)
+hascleangoals	:= $(if $(sort $(filter clean purge,$(MAKECMDGOALS))),1)
+hasbuildgoals	:= $(if $(sort $(filter-out clean purge,$(MAKECMDGOALS))),1)
 ifneq "$(hasbuildgoals)" ""
 ifneq "$(hascleangoals)" ""
 $(error $(C_ERROR)Clean and build targets specified together$(C_RESET)))
@@ -131,36 +136,29 @@ endif
 rm_ext		:= log,aux,dvi,ps,pdf,blg,bbl,out,nav,snm,toc,lof,lot,pfg,fls,vrb
 backup_patterns	:= *.bak
 
+# MORECLEAN is specified by the user, if he wants to remove additional
+# files when cleaning
+LATEXCLEAN = $(FILE).log $(FILE).out *.aux $(FILE).fls
+LATEXCLEAN+= $(FILE).toc $(FILE).lof $(FILE).lot
+LATEXCLEAN+= $(FILE).bbl $(FILE).bbl $(FILE).blg
+LATEXCLEAN+= $(FILE).idx $(FILE).ind $(FILE).ilg
+LATEXCLEAN+= $(FILE).glo $(FILE).gls $(FILE).ist $(FILE).glg
+LATEXCLEAN+= $(FILE).mtc* $(FILE).mlf* $(FILE).mlt* $(FILE).maf
+
+LATEXCLEAN+= bu*.bbl bu*.aux bu*.blg
+LATEXCLEAN+= $(MORECLEAN)
+
+# MOREPURGE: see MORECLEAN, but for the purge target
+LATEXPURGE = $(FILE).ps $(FILE).dvi $(FILE).pdf $(FILE).d
+LATEXPURGE+= *.aux.make *.auxbbl.make *.auxdvi.make
+LATEXPURGE+= $(MOREPURGE)
+
+
 ############################################################################
 
 #
 # Utility Functions and Definitions
 #
-
-#
-# BSD SED NOTES
-#
-# BSD SED is not very nice compared to GNU sed, but it is the most
-# commonly-invoked sed on Macs (being based on BSD), so we have to cater to
-# it or require people to install GNU sed.  It seems like the GNU
-# requirement isn't too bad since this makefile is really a GNU makefile,
-# but apparently GNU sed is much less common than GNU make in general, so
-# I'm supporting it here.
-#
-# Sad experience has taught me the following about BSD sed:
-#
-# 	* \+ is not understood to mean \{1,\}
-# 	* \| is meaningless (does not branch)
-# 	* \n cannot be used as a substitution character
-# 	* ? does not mean \{0,1\}, but is literal
-# 	* a\ works, but only reliably for a single line if subsequent lines
-# 		have forward slashes in them (as is the case in postscript)
-#
-# For more info (on the Mac) you can consult
-#
-# man -M /usr/share/man re_format
-#
-# And look for the word "Obsolete" near the bottom.
 
 # Test that a file exists
 # $(call test-exists,file)
@@ -197,10 +195,6 @@ $(if $(filter-out $(wildcard $1),$1),\
 	$(ECHO) "$(C_RESET)" >&2)
 ))
 endef
-
-#
-# Functions used in generating output
-#
 
 # Outputs all source dependencies to stdout.  The first argument is the file to
 # be parsed, the second is a list of files that will show up as dependencies in
@@ -339,9 +333,8 @@ define flatten-aux
 $(SED) \
 -e '/\\@input{\(.*\)}/{' \
 -e     's//\1/' \
--e     's![.:]!\\&!g' \
 -e     'h' \
--e     's!.*!\\:\\\\@input{&}:{!' \
+-e     's!.*!\\:\\@input{&}:{!' \
 -e     'p' \
 -e     'x' \
 -e     's/.*/r &/p' \
@@ -423,6 +416,18 @@ $1.log \
 | $(EGREP) -q '^(.*Rerun .*|No file $1\.[^.]+\.|LaTeX Warning: File.*)$$'
 endef
 
+STILLNOT = grep "LaTeX Warning: \(Label(s) may have changed. Rerun to get cross-references right\|There were undefined references\)." 
+
+ONEMORETIME = $(STILLNOT) $(1); if [ "$$?" -eq 0 ]; then mv $(2) $(2).tmp; $(MAKE) LATEXSTEP=$(3); else if [ -f $(2).tmp ]; then rm $(2).tmp; fi; fi
+
+# $(call possibly-rerun,<source stem>,<produced dvi/ps/pdf file>,<step LaTeX compilation>)
+define possibly-rerun
+$(call test-run-again,$1); \
+if [ "$$?" -eq 0 ]; then mv $(2) $(2).tmp; $(MAKE) LATEXSTEP=$(3) $(2); \
+else if [ -f $(2).tmp ]; then rm $(2).tmp; fi; $(call latex-color-log,$1); fi
+endef
+
+
 # LaTeX invocations
 #
 # $(call latex,<tex file>)
@@ -458,3 +463,132 @@ echo-list	= for x in $1; do $(ECHO) "$$x"; done
 
 ############################################################################
 
+# Cancelling the dvi implicit rule
+%.dvi: %.tex
+
+# .SECONDARY: $(FILE).dvi
+# .SECONDARY: $(FILE).fls $(FILE).aux
+# .SECONDARY: $(FILE).aux.make
+# .SECONDARY: $(FILE).auxdvi.make
+# .SECONDARY: $(FILE).auxbbl.make
+.SECONDARY:
+
+.PHONY: all
+all: $(FILE).pdf
+
+
+# Include if we're not cleaning
+ifeq "$(hascleangoals)" ""
+-include $(FILE).d $(call include-message,$(FILE).d)
+endif
+
+.PHONY: clean
+clean:
+	$(QUIET)$(RM) $(LATEXCLEAN)
+
+.PHONY: purge
+purge: clean
+	$(QUIET)$(RM) $(LATEXPURGE)
+
+.SUFFIXES:
+.SUFFIXES: .done .tex .dvi .ps .pdf .html .aux .d .stamp .idx .ind .toc .lof .lot .bbl
+
+%.aux %.fls: %.tex
+	$(QUIET)$(call run-latex,$*)
+
+%.aux.make: %.aux.make.cookie
+	$(QUIET)$(call replace-if-different-and-remove,$<,$@) && touch $@
+
+%.auxdvi.make: %.auxdvi.make.cookie
+	$(QUIET)$(call replace-if-different-and-remove,$<,$@) && touch $@
+
+%.auxbbl.make: %.auxbbl.make.cookie
+	$(QUIET)$(call replace-if-different-and-remove,$<,$@) && touch $@
+
+
+%.aux.make.cookie: %.aux
+	$(QUIET)$(call flatten-aux,$<,$@)
+
+%.auxdvi.make.cookie: %.aux.make
+	$(QUIET)$(call make-auxdvi-file,$<,$@)
+
+%.auxbbl.make.cookie: %.aux.make
+	$(QUIET)$(call make-auxbbl-file,$<,$@)
+
+# LATEXSTEP tells us which step _is done_ (not about to be done)
+# Steps: latex_init, latex_refs, latex_links => 4 steps
+
+ifndef LATEXSTEP
+
+# We need to build the .d only at the first step
+
+%.pdf %.d: %.fls %.aux
+	$(QUIET)echo Step 1; \
+	$(call get-inputs,$*.fls,$(addprefix $*.,fls aux pdf)) > $*.d.cookie; \
+	$(call get-bbl-deps,$*,$(addprefix $*.,pdf),$*.d.cookie); \
+	$(call make-inds-deps,$*,$(addprefix $*.,pdf),$*.d.cookie); \
+	$(call replace-if-different-and-remove,$*.d.cookie,$*.d) && touch $*.d; \
+	$(call possibly-rerun,$*,$*.pdf,latex_init)
+
+endif
+
+ifeq ($(LATEXSTEP),latex_init)
+# Index and glossaries should be done here
+%.ind: %.idx
+	$(QUIET)$(MAKEINDEX) $*
+
+%.gls: %.glo %.ist
+	$(QUIET)$(MAKEINDEX) -t $*.glg -o $@ -s $*.ist $<
+
+%.pdf:
+	$(QUIET)echo Step 2; \
+	$(call run-latex,$*); \
+	touch $*.d; \
+	$(call possibly-rerun,$*,$@,latex_index)
+
+
+endif
+
+ifeq ($(LATEXSTEP),latex_index)
+
+# Bibtex should be done here
+%.bbl: %.auxbbl.make
+	$(QUIET)$(call run-bibtex,$*)
+
+%.pdf:
+	$(QUIET)echo Step 3; \
+	$(call run-latex,$*); \
+	touch $*.d; \
+	$(call possibly-rerun,$*,$@,latex_refs)
+
+
+endif
+
+ifeq ($(LATEXSTEP),latex_refs)
+
+%.pdf:
+	$(QUIET)echo Step 4; \
+	$(call run-latex,$*); \
+	touch $*.d; \
+	$(call possibly-rerun,$*,$@,latex_links)
+
+
+endif
+
+ifeq ($(LATEXSTEP),latex_links)
+
+%.pdf:
+	$(QUIET)echo Step 5; \
+	$(call run-latex,$*); \
+	touch $*.d; \
+	rm -f $@.tmp
+
+endif
+
+
+# Dependencies of %.fls and %.aux will actually go into %.d
+
+
+
+%.html: %.pdf
+	$(HEVEA) $<
