@@ -9,6 +9,10 @@
 # 
 # Parts I added are licenced GPLv2 as well. Things may evolve later on.
 
+HEVEAFLAGS ?= -fixpoint
+BARELATEX ?= pdflatex
+BIBFLAGS ?= -min-crossrefs=1
+#VERBOSE := y
 
 #
 # EXTERNAL PROGRAMS:
@@ -21,6 +25,7 @@ ECHO		:= echo
 EGREP		:= egrep
 ENV		:= env
 MV		:= mv -f
+RM		:= rm -f
 SED		:= sed
 SORT		:= sort
 TOUCH		:= touch
@@ -28,12 +33,15 @@ UNIQ		:= uniq
 WHICH		:= which
 XARGS		:= xargs
 # == LaTeX (tetex-provided) ==
-BIBTEX		:= bibtex
+BIBTEX          := bibtex $(BIBFLAGS)
 DVIPS		:= dvips
-LATEX		:= latex
+LATEX		:= $(BARELATEX) -recorder -interaction=nonstopmode $(TEXFLAGS)
 KPSEWHICH	:= kpsewhich
 PS2PDF_NORMAL	:= ps2pdf
 PS2PDF_EMBED	:= ps2pdf13
+HEVEA           := hevea $(HEVEAFLAGS)
+MAKEINDEX       := makeindex -q
+# Glosstex, also ?
 # = OPTIONAL PROGRAMS =
 # == Makefile Color Output ==
 TPUT		:= tput
@@ -367,8 +375,8 @@ endef
 
 # LaTeX invocations
 #
-# $(call latex,<tex file>,[<extra LaTeX args>])
-run-latex	= $(LATEX) --interaction=batchmode $(if $2,$2,) $1 > /dev/null
+# $(call latex,<tex file>)
+run-latex	= $(LATEX) $1 > /dev/null
 
 # BibTeX invocations
 #
