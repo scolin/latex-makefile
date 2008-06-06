@@ -369,6 +369,9 @@ color_bib	:= \
 # $(call latex-color-log,<LaTeX stem>)
 latex-color-log	= $(color_tex) $1.log
 
+# $(call bibtex-color-log,<LaTeX stem>)
+bibtex-color-log	= $(color_bib) $1.blg
+
 # Make beamer output big enough to print on a full page.  Landscape doesn't
 # seem to work correctly.
 enlarge_beamer	= $(PSNUP) -l -1 -W128mm -H96mm -pletter
@@ -406,8 +409,7 @@ run-latex	= $(LATEX) $1 > /dev/null
 # BibTeX invocations
 #
 # $(call run-bibtex,<tex stem>)
-run-bibtex	= $(BIBTEX) $1 | $(color_bib)
-
+run-bibtex = $(BIBTEX) $1 > /dev/null
 
 # Convert DVI to Postscript
 # $(call make-ps,<dvi file>,<ps file>,<log file>,[<paper size>])
@@ -523,7 +525,8 @@ ifeq ($(LATEXSTEP),latex_index)
 
 # Bibtex should be done here
 %.bbl: %.auxbbl.make
-	$(QUIET)$(call run-bibtex,$*)
+	$(QUIET)$(call run-bibtex,$*); \
+	$(call bibtex-color-log,$*)
 
 %.pdf:
 	$(QUIET)echo Step 3; \
