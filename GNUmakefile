@@ -70,6 +70,7 @@ comma		:= ,
 sh_true		:= :
 sh_false	:= ! :
 
+
 # Turn command echoing back on with VERBOSE=1
 ifndef VERBOSE
 QUIET	:= @
@@ -259,6 +260,7 @@ $(SED) \
 $1 > $2
 endef
 
+
 # Colorizes real, honest-to-goodness LaTeX errors that can't be overcome with
 # recompilation.
 #
@@ -278,6 +280,7 @@ $(SED) \
 -e 'd' \
 $1
 endef
+
 
 # Get all important .aux files from the top-level .aux file and merges them all
 # into a single file, which it outputs to stdout.
@@ -540,3 +543,4 @@ endif
 
 %.html: %.pdf
 	$(HEVEA) $<
+
