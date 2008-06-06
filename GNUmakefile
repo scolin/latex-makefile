@@ -358,6 +358,9 @@ color_bib	:= \
 # $(call latex-color-log,<LaTeX stem>)
 latex-color-log	= $(color_tex) $1.log
 
+# $(call latex-error-log,<LaTeX stem>)
+latex-error-log	= $(call colorize-latex-errors,$1.log)
+
 # $(call bibtex-color-log,<LaTeX stem>)
 bibtex-color-log	= $(color_bib) $1.blg
 
@@ -409,6 +412,14 @@ make-pdf	= \
 		$(ps2pdf_embedded),\
 		$(ps2pdf_normal)) '$1' '$2' &> $3
 
+# Will create the stem.d dependencies file
+# $(call make-deps,<stem>)
+define make-deps
+  $(call get-inputs,$1.fls,$(addprefix $1.,fls aux pdf)) > $1.d.cookie; \
+  $(call get-bbl-deps,$1,$(addprefix $1.,pdf),$1.d.cookie); \
+  $(call make-inds-deps,$1,$(addprefix $1.,pdf),$1.d.cookie); \
+  $(call replace-if-different-and-remove,$1.d.cookie,$1.d) && touch $1.d
+endef
 
 ############################################################################
 
@@ -446,13 +457,13 @@ purge: clean
 	$(QUIET)$(call run-latex,$*)
 
 %.aux.make: %.aux.make.cookie
-	$(QUIET)$(call replace-if-different-and-remove,$<,$@) && touch $@
+	$(QUIET)$(call replace-if-different-and-remove,$<,$@)
 
 %.auxdvi.make: %.auxdvi.make.cookie
-	$(QUIET)$(call replace-if-different-and-remove,$<,$@) && touch $@
+	$(QUIET)$(call replace-if-different-and-remove,$<,$@)
 
 %.auxbbl.make: %.auxbbl.make.cookie
-	$(QUIET)$(call replace-if-different-and-remove,$<,$@) && touch $@
+	$(QUIET)$(call replace-if-different-and-remove,$<,$@)
 
 
 %.aux.make.cookie: %.aux
@@ -464,20 +475,23 @@ purge: clean
 %.auxbbl.make.cookie: %.aux.make
 	$(QUIET)$(call make-auxbbl-file,$<,$@)
 
-# LATEXSTEP tells us which step _is done_ (not about to be done)
-# Steps: latex_init, latex_refs, latex_links => 4 steps
+# LATEXSTEP tells us which step is _done_ (not about to be done)
+# Steps: latex_init, latex_index, latex_refs, latex_links => 5 steps
 
 ifndef LATEXSTEP
 
 # We need to build the .d only at the first step
 
-%.pdf %.d: %.fls %.aux
-	$(QUIET)echo Step 1; \
-	$(call get-inputs,$*.fls,$(addprefix $*.,fls aux pdf)) > $*.d.cookie; \
-	$(call get-bbl-deps,$*,$(addprefix $*.,pdf),$*.d.cookie); \
-	$(call make-inds-deps,$*,$(addprefix $*.,pdf),$*.d.cookie); \
-	$(call replace-if-different-and-remove,$*.d.cookie,$*.d) && touch $*.d; \
-	$(call possibly-rerun,$*,$*.pdf,latex_init)
+%.bbl: %.auxbbl.make
+	$(QUIET)true
+
+%.pdf:
+	$(QUIET)echo Step: initial
+	$(QUIET)$(call run-latex,$*); \
+	if [ "$$?" -ne 0 ]; then $(call latex-error-log,$*); exit 1; \
+	else $(call make-deps,$*); $(call test-run-again,$*); \
+	if [ "$$?" -eq 0 ]; then rm $@; $(MAKE) LATEXSTEP=latex_init FILE=$* $@; else $(call latex-color-log,$*); fi; \
+	fi
 
 endif
 
@@ -493,11 +507,12 @@ ifeq ($(LATEXSTEP),latex_init)
 	$(QUIET)true
 
 %.pdf:
-	$(QUIET)echo Step 2; \
-	$(call run-latex,$*); \
-	touch $*.d; \
-	$(call possibly-rerun,$*,$@,latex_index)
-
+	$(QUIET)echo Step: index, glossaries
+	$(QUIET)$(call run-latex,$*); \
+	if [ "$$?" -ne 0 ]; then $(call latex-error-log,$*); exit 1; \
+	else $(call test-run-again,$*); \
+	if [ "$$?" -eq 0 ]; then rm $@; $(MAKE) LATEXSTEP=latex_index FILE=$* $@; else $(call latex-color-log,$*); fi; \
+	fi
 
 endif
 
@@ -506,35 +521,36 @@ ifeq ($(LATEXSTEP),latex_index)
 # Bibtex should be done here
 %.bbl: %.auxbbl.make
 	$(QUIET)$(call run-bibtex,$*); \
-	$(call bibtex-color-log,$*)
+	if [ "$$?" -ne 0 ]; then $(call bibtex-color-log,$*); exit 1; fi
 
 %.pdf:
-	$(QUIET)echo Step 3; \
-	$(call run-latex,$*); \
-	touch $*.d; \
-	$(call possibly-rerun,$*,$@,latex_refs)
-
+	$(QUIET)echo Step: bibliography
+	$(QUIET)$(call run-latex,$*); \
+	if [ "$$?" -ne 0 ]; then $(call latex-error-log,$*); exit 1; \
+	else $(call test-run-again,$*); \
+	if [ "$$?" -eq 0 ]; then rm $@; $(MAKE) LATEXSTEP=latex_refs FILE=$* $@; else $(call latex-color-log,$*); fi; \
+	fi
 
 endif
 
 ifeq ($(LATEXSTEP),latex_refs)
 
 %.pdf:
-	$(QUIET)echo Step 4; \
-	$(call run-latex,$*); \
-	touch $*.d; \
-	$(call possibly-rerun,$*,$@,latex_links)
-
+	$(QUIET)echo Step: cross-references
+	$(QUIET)$(call run-latex,$*); \
+	if [ "$$?" -ne 0 ]; then $(call latex-error-log,$*); exit 1; \
+	else $(call test-run-again,$*); \
+	if [ "$$?" -eq 0 ]; then rm $@; $(MAKE) LATEXSTEP=latex_links FILE=$* $@; else $(call latex-color-log,$*); fi; \
+	fi
 
 endif
 
 ifeq ($(LATEXSTEP),latex_links)
 
 %.pdf:
-	$(QUIET)echo Step 5; \
-	$(call run-latex,$*); \
-	touch $*.d; \
-	rm -f $@.tmp
+	$(QUIET)echo Step: last chance to solve undefined references
+	$(QUIET)$(call run-latex,$*); \
+	if [ "$$?" -ne 0 ]; then $(call latex-error-log,$*); exit 1; else $(call latex-color-log,$*); fi
 
 endif
 
