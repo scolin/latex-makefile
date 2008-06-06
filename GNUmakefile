@@ -221,6 +221,56 @@ $(SED) \
 $1 | $(SORT) | $(UNIQ)
 endef
 
+# $(call get-bbls,<stem>,<targets>)
+define get-bbls
+$(SED) -e '/^No file \(.*\.bbl\)\./!d' -e 's/No file \(.*\.bbl\)\./\1/g' $1.log | $(SORT) | $(UNIQ) | \
+$(SED) -e 's/^/$2: /g'
+endef
+
+
+# $(call get-bbl-deps,<stem>,,<targets>,<out file>)
+# We exploit the fact that a bbl appearing in the .fls is not "No file" in the .log, and vice-versa
+define get-bbl-deps
+bblstems1=`$(SED) -e '/^No file \(.*\.bbl\)\./!d' -e 's/No file \(.*\)\.bbl\./\1/g' $1.log | $(SORT) | $(UNIQ)`; \
+bblstems2=`$(SED) -e '/^INPUT.*\.bbl$$/!d' -e 's!^INPUT \(\./\)\{0,1\}\(.*\)\.bbl$$!\2!' $1.fls | $(SORT) | $(UNIQ)`; \
+bblstems="$$bblstems1 $$bblstems2"; \
+if [ ! -f $3 ]; then touch $3; fi; \
+for i in $$bblstems; \
+do \
+  echo $2: $$i.bbl >>$3; \
+  $(SED) \
+  -e '/^\\bibdata/!d' \
+  -e 's/\\bibdata{\([^}]*\)}/\1,/' \
+  -e 's/,\{2,\}/,/g' \
+  -e 's/,/.bib /g' \
+  -e 's/ \{1,\}$$//' \
+  $$i.aux | $(XARGS) $(KPSEWHICH) - | \
+  $(SED) -e "s/^/$$i.bbl: /" | \
+  $(SORT) | $(UNIQ) >>$3; \
+done
+endef
+
+# TODO: analyse the .fls too...
+# $(call get-inds,<stem>,<targets>)
+define get-inds
+$(SED) -e '/^No file \(.*\.ind\)\./!d' -e 's/No file \(.*\.ind\)\./\1/g' $1.log | $(SORT) | $(UNIQ) | \
+$(SED) -e 's/^/$2: /g'
+endef
+
+# Compute index and glossary dependencies
+# $(call make-inds-deps,<stem>,<targets>,<out file>)
+define make-inds-deps
+indstems1=`$(SED) -e '/^No file \(.*\.ind\)\./!d' -e 's/No file \(.*\.ind\)\./\1/g' $1.log | $(SORT) | $(UNIQ)`; \
+indstems2=`$(SED) -e '/^INPUT.*\.ind$$/!d' -e 's!^INPUT \(\./\)\{0,1\}\(.*\.ind\)$$!\2!' $1.fls | $(SORT) | $(UNIQ)`; \
+glsstems1=`$(SED) -e '/^No file \(.*\.gls\)\./!d' -e 's/No file \(.*\.gls\)\./\1/g' $1.log | $(SORT) | $(UNIQ)`; \
+glsstems2=`$(SED) -e '/^INPUT.*\.gls$$/!d' -e 's!^INPUT \(\./\)\{0,1\}\(.*\.gls\)$$!\2!' $1.fls | $(SORT) | $(UNIQ)`; \
+indstems="$$indstems1 $$indstems2"; \
+glsstems="$$glsstems1 $$glsstems2"; \
+if [ ! -f $3 ]; then touch $3; fi; \
+if [ "x$$indstems" != "x " ]; then echo $2: $$indstems >>$3; fi; \
+if [ "x$$glsstems" != "x " ]; then echo $2: $$glsstems >>$3; fi
+endef
+
 # Outputs all bibliography files to stdout.  Arg 1 is the source stem, arg 2 is
 # a list of targets for each dependency found.
 #
