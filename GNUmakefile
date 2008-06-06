@@ -197,6 +197,8 @@ endef
 # clunky to extract suitable extensions.
 #
 # $(call get-inputs,<parsed file>,<target files>)
+-e '/\.png$$/p' \
+-e '/\.jpg$$/p' \
 define get-inputs
 $(SED) \
 -e '/^INPUT/!d' \
