@@ -160,12 +160,9 @@ LATEXPURGE+= $(MOREPURGE)
 # Utility Functions and Definitions
 #
 
-# Test that a file exists
-# $(call test-exists,file)
 test-exists		= [ -e '$1' ]
+test-different		= ! $(DIFF) -q '$1' '$2' &>/dev/null
 
-# Copy file1 to file2 only if file2 doesn't exist or they are different
-# $(call copy-if-different,sfile,dfile)
 copy-if-different	= $(call test-different,$1,$2) && $(CP) '$1' '$2'
 copy-if-exists		= $(call test-exists,$1) && $(CP) '$1' '$2'
 move-if-different	= $(call test-different,$1,$2) && $(MV) '$1' '$2'
@@ -174,12 +171,9 @@ replace-if-different-and-remove	= \
 
 # Note that $(DIFF) returns success when the files are the SAME....
 # $(call test-different,sfile,dfile)
-test-different		= ! $(DIFF) -q '$1' '$2' &>/dev/null
 test-exists-and-different	= \
 	$(call test-exists,$2) && $(call test-different,$1,$2)
 
-# Return value 1, or value 2 if value 1 is empty
-# $(call get-default,<possibly empty arg>,<default value if empty>)
 get-default	= $(if $1,$1,$2)
 
 # Gives a reassuring message about the failure to find include files
@@ -263,30 +257,6 @@ glsstems="$$glsstems1 $$glsstems2"; \
 if [ ! -f $3 ]; then touch $3; fi; \
 if [ "x$$indstems" != "x " ]; then echo $2: $$indstems >>$3; fi; \
 if [ "x$$glsstems" != "x " ]; then echo $2: $$glsstems >>$3; fi
-endef
-
-# Outputs all bibliography files to stdout.  Arg 1 is the source stem, arg 2 is
-# a list of targets for each dependency found.
-#
-# The script kills all lines that do not contain bibdata.  Remaining lines have
-# the \bibdata macro and delimiters removed to create a dependency list.  A
-# trailing comma is added, then all adjacent commas are collapsed into a single
-# comma.  Then commas are replaced with the string .bib[space], and the
-# trailing space is killed off.  This produces a list of space-delimited .bib
-# filenames, which is what the make dep file expects to see.
-#
-# $(call get-bibs,<aux file>,<targets>)
-define get-bibs
-$(SED) \
--e '/^\\bibdata/!d' \
--e 's/\\bibdata{\([^}]*\)}/\1,/' \
--e 's/,\{2,\}/,/g' \
--e 's/,/.bib /g' \
--e 's/ \{1,\}$$//' \
-$1 | $(XARGS) $(KPSEWHICH) - | \
-$(SED) \
--e 's/^/$2: /' | \
-\$(SORT) | $(UNIQ)
 endef
 
 # Makes a an aux file that only has stuff relevant to the dvi in it
