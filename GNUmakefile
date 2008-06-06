@@ -169,8 +169,6 @@ move-if-different	= $(call test-different,$1,$2) && $(MV) '$1' '$2'
 replace-if-different-and-remove	= \
 	$(call test-different,$1,$2) && $(MV) '$1' '$2' || $(RM) '$1'
 
-# Note that $(DIFF) returns success when the files are the SAME....
-# $(call test-different,sfile,dfile)
 test-exists-and-different	= \
 	$(call test-exists,$2) && $(call test-different,$1,$2)
 
@@ -209,13 +207,6 @@ $(SED) \
 $1 | $(SORT) | $(UNIQ)
 endef
 
-# $(call get-bbls,<stem>,<targets>)
-define get-bbls
-$(SED) -e '/^No file \(.*\.bbl\)\./!d' -e 's/No file \(.*\.bbl\)\./\1/g' $1.log | $(SORT) | $(UNIQ) | \
-$(SED) -e 's/^/$2: /g'
-endef
-
-
 # $(call get-bbl-deps,<stem>,,<targets>,<out file>)
 # We exploit the fact that a bbl appearing in the .fls is not "No file" in the .log, and vice-versa
 define get-bbl-deps
@@ -236,13 +227,6 @@ do \
   $(SED) -e "s/^/$$i.bbl: /" | \
   $(SORT) | $(UNIQ) >>$3; \
 done
-endef
-
-# TODO: analyse the .fls too...
-# $(call get-inds,<stem>,<targets>)
-define get-inds
-$(SED) -e '/^No file \(.*\.ind\)\./!d' -e 's/No file \(.*\.ind\)\./\1/g' $1.log | $(SORT) | $(UNIQ) | \
-$(SED) -e 's/^/$2: /g'
 endef
 
 # Compute index and glossary dependencies
@@ -389,10 +373,6 @@ $1.log \
 | $(EGREP) -q '^(.*Rerun .*|No file $1\.[^.]+\.|LaTeX Warning: File.*)$$'
 endef
 
-STILLNOT = grep "LaTeX Warning: \(Label(s) may have changed. Rerun to get cross-references right\|There were undefined references\)." 
-
-ONEMORETIME = $(STILLNOT) $(1); if [ "$$?" -eq 0 ]; then mv $(2) $(2).tmp; $(MAKE) LATEXSTEP=$(3); else if [ -f $(2).tmp ]; then rm $(2).tmp; fi; fi
-
 # $(call possibly-rerun,<source stem>,<produced dvi/ps/pdf file>,<step LaTeX compilation>)
 define possibly-rerun
 $(call test-run-again,$1); \
@@ -424,14 +404,6 @@ make-pdf	= \
 		$(ps2pdf_embedded),\
 		$(ps2pdf_normal)) '$1' '$2' &> $3
 
-# Display information about what is being done
-# $(call echo-build,<output file>,[<run number>])
-echo-build	= $(ECHO) "$(C_INFO)= $1 --> $2$(if $3, ($3),) =$(C_RESET)"
-echo-dep	= $(ECHO) "$(C_INFO)= $1 --> $2 =$(C_RESET)"
-
-# Display a list of something
-# $(call echo-list,<values>)
-echo-list	= for x in $1; do $(ECHO) "$$x"; done
 
 ############################################################################
 
