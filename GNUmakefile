@@ -484,6 +484,9 @@ ifeq ($(LATEXSTEP),latex_init)
 %.gls: %.glo %.ist
 	$(QUIET)$(MAKEINDEX) -t $*.glg -o $@ -s $*.ist $<
 
+%.bbl: %.auxbbl.make
+	$(QUIET)true
+
 %.pdf:
 	$(QUIET)echo Step 2; \
 	$(call run-latex,$*); \
