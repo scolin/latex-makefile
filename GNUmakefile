@@ -17,7 +17,7 @@ else
   documentclass=$(shell grep documentclass $(FILE).tex)
 endif
 
-HEVEAFLAGS ?= -fixpoint
+HEVEAFLAGS ?= -fix
 BARELATEX ?= pdflatex
 BIBFLAGS ?= -min-crossrefs=1
 #VERBOSE := y
@@ -469,5 +469,5 @@ endif
 
 
 %.html: %.pdf
-	$(HEVEA) $<
+	$(HEVEA) $*.hva $<
 
