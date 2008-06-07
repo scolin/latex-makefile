@@ -17,6 +17,8 @@ else
   documentclass=$(shell grep documentclass $(FILE).tex)
 endif
 
+TMPDIR=._d
+
 HEVEAFLAGS ?= -fix
 BARELATEX ?= pdflatex
 BIBFLAGS ?= -min-crossrefs=1
@@ -159,6 +161,11 @@ sed \
 -e '/\.gls$$/d' \
 -e '/\.nav$$/d' \
 -e '/\.toc$$/d' \
+-e '/\.mtc[0-9]*$$/d' \
+-e '/\.lof$$/d' \
+-e '/\.mlf[0-9]*$$/d' \
+-e '/\.lot$$/d' \
+-e '/\.mlt[0-9]*$$/d' \
 -e '/\.out$$/d' \
 -e 's/^.*$$/$2: &/' \
 $1 | sort | uniq
@@ -202,23 +209,6 @@ if [ ! -f $3 ]; then touch $3; fi; \
 if [ "x$$indstems" != "x " ]; then echo $2: $$indstems >>$3; fi; \
 if [ "x$$glsstems" != "x " ]; then echo $2: $$glsstems >>$3; fi
 endef
-
-# Makes a an aux file that only has stuff relevant to the dvi in it
-# $(call make-auxdvi-file,<flattened-aux>,<new-aux>)
-define make-auxdvi-file
-sed \
--e '/^\\newlabel/!d' \
-$1 > $2
-endef
-
-# Makes an aux file that only has stuff relevant to the bbl in it
-# $(call make-auxbbl-file,<flattened-aux>,<new-aux>)
-define make-auxbbl-file
-sed \
--e '/^\\newlabel/d' \
-$1 > $2
-endef
-
 
 # Colorizes real, honest-to-goodness LaTeX errors that can't be
 # overcome with recompilation.
@@ -270,19 +260,48 @@ sed \
 rm -f $1.$$$$.{sed.,}make
 endef
 
+# Makes an aux file that only has stuff relevant to the bbl in it
+# $(call make-auxbbl-file,<aux file>,<new-aux>)
+# -e '/^\\bibcite/p' is useless, looks like
+define make-auxbbl-file
+sed \
+-e '/^\\bibstyle/p' \
+-e '/^\\citation/p' \
+-e '/^\\bibdata/p' \
+-e 'd' \
+$1 | sort | uniq > $2
+endef
+
 # Colorize LaTeX output.
 color_tex	:= \
-	sed \
+	sed -n \
 	-e '/^[[:space:]]*Output written/{' \
-	-e ' s/.*(\([^)]\{1,\}\)).*/Success!  Wrote \1/' \
-	-e ' s/[[:digit:]]\{1,\}/$(C_INFO)&$(C_RESET)/g' \
-	-e ' s/Success!/$(C_INFO)&$(C_RESET)/g' \
+	-e '  s/.*(\([^)]\{1,\}\)).*/Success!  Wrote \1/' \
+	-e '  s/[[:digit:]]\{1,\}/$(C_INFO)&$(C_RESET)/g' \
+	-e '  s/Success!/$(C_INFO)&$(C_RESET)/g' \
+	-e '  p' \
 	-e '}' \
-	-e 's/^! *LaTeX Error:.*/$(C_ERROR)&$(C_RESET)/' -e 't' \
-	-e 's/^LaTeX Warning:.*/$(C_WARNING)&$(C_RESET)/' -e 't' \
-	-e 's/^Underfull.*/$(C_WARNING)&$(C_RESET)/' -e 't' \
-	-e 's/^Overfull.*/$(C_WARNING)&$(C_RESET)/' -e 't' \
-	-e 's/^\#\#\#.*/$(C_WARNING)&$(C_RESET)/' -e 't' \
+	-e '/[^ (]*\.tex[^(]*([^ (]*\.tex/{' \
+	-e '  s/.*(\([^ (]*\.tex\)\([^(]*\)\(([^ (]*\.tex\)/$(C_INFO)\1$(C_RESET)\n\3/' \
+	-e '  P' \
+	-e '  D' \
+	-e '}' \
+	-e '/[^ (]*\.tex/{' \
+	-e ' s/.*(\([^ (]*\.tex\)$$/$(C_INFO)\1$(C_RESET)\n/' \
+	-e ' s/.*(\([^ (]*\.tex\)[ )]/$(C_INFO)\1$(C_RESET)\n/' \
+	-e ' P' \
+	-e ' D' \
+	-e '}' \
+	-e 's/^! *LaTeX Error:.*/$(C_ERROR)&$(C_RESET)/' \
+	-e 't' \
+	-e 's/^LaTeX Warning:.*/$(C_WARNING)&$(C_RESET)/' \
+	-e 't' \
+	-e 's/^Underfull.*/$(C_WARNING)&$(C_RESET)/' \
+	-e 't' \
+	-e 's/^Overfull.*/$(C_WARNING)&$(C_RESET)/' \
+	-e 't' \
+	-e 's/^\#\#\#.*/$(C_WARNING)&$(C_RESET)/' \
+	-e 't' \
 	$(if $(VERBOSE),,-e 'd')
 
 # Colorize BibTeX output.
