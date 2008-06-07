@@ -115,19 +115,17 @@ LATEXCLEAN+= $(FILE).glo $(FILE).glg
 LATEXCLEAN+= $(FILE).toc $(FILE).lof $(FILE).lot
 LATEXCLEAN+= $(FILE).mtc* $(FILE).mlf* $(FILE).mlt* $(FILE).maf
 LATEXCLEAN+= $(FILE).nav $(FILE).snm  $(FILE).vrb 
-LATEXCLEAN+= $(FILE).aux.make $(FILE).auxbbl $(FILE).auxdvi.make
 LATEXCLEAN+= *.aux *.blg
 LATEXCLEAN+= $(FILE).haux $(FILE).htoc
 
-#LATEXCLEAN+= bu*.bbl bu*.aux bu*.blg
-LATEXCLEAN+= *~
 LATEXCLEAN+= $(MORECLEAN)
 
 # MOREPURGE: see MORECLEAN, but for the purge target
-LATEXPURGE = $(FILE).ps $(FILE).dvi $(FILE).pdf $(FILE).deps $(FILE).vars
+LATEXPURGE = $(FILE).ps $(FILE).dvi $(FILE).pdf 
 LATEXPURGE+= $(FILE).bbl $(FILE).ind $(FILE).gls
 LATEXPURGE+= bu*.bbl
 LATEXPURGE+= $(FILE).html
+
 LATEXPURGE+= $(MOREPURGE)
 
 
@@ -149,7 +147,7 @@ replace-if-different-and-remove	= \
 # NOTE: BSD sed does not understand \|, so we have to do something
 # more clunky to extract suitable extensions.
 #
-# $(call get-inputs,<parsed file>,<target files>)
+# $(call get-inputs,<stem>,<target files>)
 define get-inputs
 sed \
 -e '/^INPUT/!d' \
@@ -169,7 +167,7 @@ sed \
 -e '/\.mlt[0-9]*$$/d' \
 -e '/\.out$$/d' \
 -e 's/^.*$$/$2: &/' \
-$1 | sort | uniq
+$(TMPDIR)/$1.fls | sort | uniq >$(TMPDIR)/$1.deps
 endef
 
 # $(call update_file,<filename>)
@@ -219,17 +217,17 @@ endef
 # Note: nested "call" works here because the parameters are known
 # statically
 
-# $(call get-bbl-deps,<stem>,,<targets>,<out file>) 
+# $(call get-bbl-deps,<stem>,,<targets>) 
 # We exploit the fact that a bbl appearing in the .fls is not "No
 # file" in the .log, and vice-versa
+#
 define get-bbl-deps
-bblstems1=`sed -e '/^No file \(.*\.bbl\)\./!d' -e 's/No file \(.*\)\.bbl\./\1/g' $1.log | sort | uniq`; \
-bblstems2=`sed -e '/^INPUT.*\.bbl$$/!d' -e 's!^INPUT \(\./\)\{0,1\}\(.*\)\.bbl$$!\2!' $1.fls | sort | uniq`; \
+bblstems1=`sed -e '/^No file \(.*\.bbl\)\./!d' -e 's/No file \(.*\)\.bbl\./\1/g' $(TMPDIR)/$1.log | sort | uniq`; \
+bblstems2=`sed -e '/^INPUT.*\.bbl$$/!d' -e 's!^INPUT \(\./\)\{0,1\}\(.*\)\.bbl$$!\2!' $(TMPDIR)/$1.fls | sort | uniq`; \
 bblstems="$$bblstems1 $$bblstems2"; \
-if [ ! -f $3 ]; then touch $3; fi; \
 for i in $$bblstems; \
 do \
-  echo $2: $$i.bbl >>$3; \
+  echo $2: $$i.bbl >>$(TMPDIR)/$1.deps; \
   sed \
   -e '/^\\bibdata/!d' \
   -e 's/\\bibdata{\([^}]*\)}/\1,/' \
@@ -238,25 +236,42 @@ do \
   -e 's/ \{1,\}$$//' \
   $$i.aux | xargs $(KPSEWHICH) - | \
   sed -e "s/^/$$i.bbl: /" | \
-  sort | uniq >>$3; \
-  echo MORECLEAN+= $$i.aux $$i.blg $$i.aux.make $$i.auxbbl >>$3 ;\
-  echo MOREPURGE+= $$i.bbl >>$3;\
-done
+  sort | uniq >>$(TMPDIR)/$1.deps; \
+  echo $$i.aux >>$(TMPDIR)/$1.clean ;\
+  echo $$i.blg >>$(TMPDIR)/$1.clean ;\
+  echo $$i.bbl >>$(TMPDIR)/$1.purge ;\
+  echo $(TMPDIR)/$$i.auxbbl >>$(TMPDIR)/$1.purge ;\
+done; \
+$(call trim,$(TMPDIR)/$1.clean) ;\
+$(call trim,$(TMPDIR)/$1.purge)
 endef
 
 # Compute index and glossary dependencies
-# $(call make-inds-deps,<stem>,<targets>,<out file>)
+# $(call make-inds-deps,<stem>,<targets>)
+#
 define make-inds-deps
-indstems1=`sed -e '/^No file \(.*\.ind\)\./!d' -e 's/No file \(.*\.ind\)\./\1/g' $1.log | sort | uniq`; \
-indstems2=`sed -e '/^INPUT.*\.ind$$/!d' -e 's!^INPUT \(\./\)\{0,1\}\(.*\.ind\)$$!\2!' $1.fls | sort | uniq`; \
-glsstems1=`sed -e '/^No file \(.*\.gls\)\./!d' -e 's/No file \(.*\.gls\)\./\1/g' $1.log | sort | uniq`; \
-glsstems2=`sed -e '/^INPUT.*\.gls$$/!d' -e 's!^INPUT \(\./\)\{0,1\}\(.*\.gls\)$$!\2!' $1.fls | sort | uniq`; \
+indstems1=`sed -e '/^No file \(.*\.ind\)\./!d' -e 's/No file \(.*\.ind\)\./\1/g' $(TMPDIR)/$1.log | sort | uniq`; \
+indstems2=`sed -e '/^INPUT.*\.ind$$/!d' -e 's!^INPUT \(\./\)\{0,1\}\(.*\.ind\)$$!\2!' $(TMPDIR)/$1.fls | sort | uniq`; \
+glsstems1=`sed -e '/^No file \(.*\.gls\)\./!d' -e 's/No file \(.*\.gls\)\./\1/g' $(TMPDIR)/$1.log | sort | uniq`; \
+glsstems2=`sed -e '/^INPUT.*\.gls$$/!d' -e 's!^INPUT \(\./\)\{0,1\}\(.*\.gls\)$$!\2!' $(TMPDIR)/$1.fls | sort | uniq`; \
 indstems="$$indstems1 $$indstems2"; \
 glsstems="$$glsstems1 $$glsstems2"; \
-if [ ! -f $3 ]; then touch $3; fi; \
-if [ "x$$indstems" != "x " ]; then echo $2: $$indstems >>$3; fi; \
-if [ "x$$glsstems" != "x " ]; then echo $2: $$glsstems >>$3; fi
+if [ "x$$indstems" != "x " ]; \
+then \
+  echo $2: $$indstems >>$(TMPDIR)/$1.deps; \
+  echo $$indstems >>$(TMPDIR)/$1.purge; \
+  echo $$indstems | sed -e 's/\.ind\( \|$$\)/.ilg\1/g' >>$(TMPDIR)/$1.clean ;\
+fi; \
+if [ "x$$glsstems" != "x " ]; \
+then \
+  echo $2: $$glsstems >>$(TMPDIR)/$1.deps; \
+  echo $$glsstems >>$(TMPDIR)/$1.purge; \
+  echo $$glsstems | sed -e 's/\.gls\( \|$$\)/.glg\1/g' >>$(TMPDIR)/$1.clean ;\
+fi ;\
+$(call trim,$(TMPDIR)/$1.clean) ;\
+$(call trim,$(TMPDIR)/$1.purge)
 endef
+
 
 # Colorizes real, honest-to-goodness LaTeX errors that can't be
 # overcome with recompilation.
@@ -298,15 +313,16 @@ sed \
 -e     'd' \
 -e '}' \
 -e 'd' \
-'$1' > "$1.$$$$.sed.make"; \
-sed -f "$1.$$$$.sed.make" '$1' > "$1.$$$$.make"; \
+'$1' > "$(TMPDIR)/$1.$$$$.sed.make"; \
+sed -f "$(TMPDIR)/$1.$$$$.sed.make" '$1' > "$(TMPDIR)/$1.$$$$.make"; \
 sed \
 -e '/^\\relax/d' \
 -e '/^\\bibcite/d' \
 -e 's/^\(\\newlabel{[^}]\{1,\}}\).*/\1/' \
-"$1.$$$$.make" | sort > '$2'; \
-rm -f $1.$$$$.{sed.,}make
+"$(TMPDIR)/$1.$$$$.make" | sort > '$2'; \
+rm -f $(TMPDIR)/$1.$$$$.{sed.,}make
 endef
+
 
 # Makes an aux file that only has stuff relevant to the bbl in it
 # $(call make-auxbbl-file,<aux file>,<new-aux>)
@@ -383,18 +399,24 @@ bibtex-color-log	= $(color_bib) $1.blg
 
 # LaTeX invocations
 #
-# $(call latex,<tex file>,<target file>)
+# $(call run-latex,<stem>,<expected extension>)
 define run-latex
-surestem=`basename $1 .tex`; \
-$(LATEX) $$surestem $(TODEVNULL); \
+echo Running LaTeX; \
+$(LATEX) $1 $(TODEVNULL); \
 latexrunerror="$$?"; \
 if [ -r pdflatex.fls ]; \
-then mv -f pdflatex.fls "$$surestem".fls; \
+then mv -f pdflatex.fls "$1".fls; \
 else if [ -r latex.fls ]; \
-then mv -f latex.fls "$$surestem".fls; \
+then mv -f latex.fls "$1".fls; \
 fi; fi; \
-if [ "$$latexrunerror" -ne 0 ]; then rm -f $2; $(call latex-error-log,$$surestem); exit 1; fi
+if [ ! -d $(TMPDIR) ]; then mkdir $(TMPDIR); fi; \
+mv "$1".fls $(TMPDIR); \
+cp "$1".log $(TMPDIR); \
+$(call update_clean_file,$1) ;\
+$(call update_purge_file,$1) ;\
+if [ "$$latexrunerror" -ne 0 ]; then rm -f $2; $(call latex-error-log,$1); exit 1; fi
 endef
+
 
 # BibTeX invocations
 #
@@ -402,7 +424,7 @@ endef
 run-bibtex = $(BIBTEX) $1 $(TODEVNULL)
 
 # $(call test-run-again,<source stem>)
-test-run-again	= egrep -q '^(.*Rerun .*|No file $1\.[^.]+\.|No file [^ ]+\.bbl\.|LaTeX Warning: There were undefined references\.)$$' $1.log
+test-run-again	= egrep -q '^(.*Rerun .*|No file $1\.[^.]+\.|No file [^ ]+\.bbl\.|LaTeX Warning: There were undefined references\.)$$' $(TMPDIR)/$1.log
 
 # $(call rerun,<source stem>,<produced dvi/ps/pdf file>,<step LaTeX compilation>)
 define rerun
@@ -412,17 +434,18 @@ endef
 # $(call possibly-rerun,<source stem>,<produced dvi/ps/pdf file>,<step LaTeX compilation>)
 define possibly-rerun
 $(call test-run-again,$1); \
-if [ "$$?" -eq 0 ]; then rm -f $2; $(MAKE) LATEXSTEP=$3 FILE=$1 $2; \
-else $(call latex-color-log,$1); fi
+if [ "$$?" -eq 0 ]; then rm -f $2; $(call rerun,$1,$2,$3); \
+else echo \*\*\* LaTeX warnings and errors below \*\*\* ; \
+$(call latex-color-log,$1); \
+fi
 endef
 
 # Will create the stem.deps dependencies file
 # $(call make-deps,<stem>)
 define make-deps
-  $(call get-inputs,$1.fls,$(addprefix $1.,fls aux pdf)) > $1.deps.cookie; \
-  $(call get-bbl-deps,$1,$(addprefix $1.,pdf),$1.deps.cookie); \
-  $(call make-inds-deps,$1,$(addprefix $1.,pdf),$1.deps.cookie); \
-  $(call replace-if-different-and-remove,$1.deps.cookie,$1.deps) && touch $1.deps
+  $(call get-inputs,$1,$1.pdf); \
+  $(call get-bbl-deps,$1,$1.pdf); \
+  $(call make-inds-deps,$1,$1.pdf)
 endef
 
 ############################################################################
@@ -432,57 +455,75 @@ endef
 
 .SECONDARY:
 
-.PHONY: all
-all: $(FILE).pdf
+.PHONY: all FORCE
 
+all: $(FILE).pdf
 
 # Include if we're not cleaning
 #ifeq "$(hascleangoals)" ""
--include $(FILE).deps
--include $(FILE).vars
+-include $(TMPDIR)/$(FILE).deps
 #endif
 
 .PHONY: clean
 clean:
-	$(QUIET)rm -f $(LATEXCLEAN)
+	$(QUIET)cat $(TMPDIR)/$(FILE).clean | xargs rm -f ;\
+	rm -rf $(MORECLEAN)
 
 .PHONY: purge
 purge: clean
-	$(QUIET)rm -f $(LATEXPURGE)
+	$(QUIET)cat $(TMPDIR)/$(FILE).purge | xargs rm -f ;\
+	rm -rf $(TMPDIR) ;\
+	rm -rf $(MOREPURGE)
 
-.SUFFIXES:
-.SUFFIXES: .tex .dvi .ps .pdf .html .aux .deps .stamp .idx .ind .toc .lof .lot .bbl
-
-# %.aux %.fls: %.tex
-# 	$(QUIET)$(call run-latex,$*)
-
-%.aux.make: %.aux.make.cookie
-	$(QUIET)$(call replace-if-different-and-remove,$<,$@)
-
-%.auxdvi.make: %.auxdvi.make.cookie
-	$(QUIET)$(call replace-if-different-and-remove,$<,$@)
-
-%.auxbbl: %.auxbbl.cookie
-	$(QUIET)$(call replace-if-different-and-remove,$<,$@)
+# This target has the potential of removing user files
+# (use with caution)
+.PHONY: really-purge
+really-purge: purge
 
 
-%.aux.make.cookie: %.aux
+.SUFFIXES: 
+.SUFFIXES: .tex .dvi .ps .pdf .html .aux .deps .vars \
+.idx .ind .gls .glo .ist .bbl \
+.auxbbl .auxbbl.cookie
+
+$(TMPDIR)/$(FILE).aux.flat: $(FILE).aux
 	$(QUIET)$(call flatten-aux,$<,$@)
 
-%.auxdvi.make.cookie: %.aux.make
-	$(QUIET)$(call make-auxdvi-file,$<,$@)
+$(TMPDIR)/%.auxbbl: $(TMPDIR)/%.auxbbl.cookie
+	$(QUIET)$(call replace-if-different-and-remove,$<,$@)
 
-%.auxbbl.cookie: %.aux.make
+$(TMPDIR)/$(FILE).auxbbl.cookie: $(TMPDIR)/$(FILE).aux.flat
 	$(QUIET)$(call make-auxbbl-file,$<,$@)
+
+$(TMPDIR)/%.auxbbl.cookie: %.aux
+	$(QUIET)$(call make-auxbbl-file,$<,$@)
+
+
+
+$(TMPDIR)/%.auxidx.cookie: %.idx
+	$(QUIET)cp -a $< $@
+
+$(TMPDIR)/%.auxidx: $(TMPDIR)/%.auxidx.cookie
+	$(QUIET)$(call replace-if-different-and-remove,$<,$@)
+
+$(TMPDIR)/%.auxglo.cookie: %.glo
+	$(QUIET)cp -a $< $@
+
+$(TMPDIR)/%.auxist.cookie: %.ist
+	$(QUIET)cp -a $< $@
+
+$(TMPDIR)/%.auxglo: $(TMPDIR)/%.auxglo.cookie
+	$(QUIET)$(call replace-if-different-and-remove,$<,$@)
+
+$(TMPDIR)/%.auxist: $(TMPDIR)/%.auxist.cookie
+	$(QUIET)$(call replace-if-different-and-remove,$<,$@)
 
 # LATEXSTEP tells us which step is _done_ (not about to be done)
 # Steps: latex_init, latex_index, latex_refs, latex_links => 5 steps
 
 ifndef LATEXSTEP
 
-# We need to build the .deps only at the first step
-
-%.bbl: %.auxbbl
+%.bbl: %.aux
 	$(QUIET)true
 
 # We need to build the .deps only at the first step
@@ -496,38 +537,57 @@ ifndef LATEXSTEP
 	$(QUIET)$(call run-latex,$*,$@); \
 	$(call make-deps,$*); \
 	echo \#\#\#\#\#\# Was step: initial ; \
-	$(call possibly-rerun,$*,$@,latex_init)
+	$(call rerun,$*,$@,latex_init)
 
 endif
 
 ifeq ($(LATEXSTEP),latex_init)
 # Index and glossaries should be done here
-%.ind: %.idx
-	$(QUIET)$(MAKEINDEX) $*
+%.ind: $(TMPDIR)/%.auxidx
+	$(QUIET)echo Running makeindex for $@; \
+	$(MAKEINDEX) $* ;\
+	echo $@ >>$(TMPDIR)/$(FILE).index-done
 
-%.gls: %.glo %.ist
-	$(QUIET)$(MAKEINDEX) -t $*.glg -o $@ -s $*.ist $<
+%.gls: $(TMPDIR)/%.auxglo $(TMPDIR)/%.auxist
+	$(QUIET)echo Running makeindex for glossary $@; \
+	$(MAKEINDEX) -t $*.glg -o $@ -s $*.ist $*.glo ; \
+	echo $@ >>$(TMPDIR)/$(FILE).index-done
 
-%.bbl: %.auxbbl
+%.bbl: %.aux
 	$(QUIET)true
 
+# We loop here because page number for the glossary might change after
+# the compilation, hence we have to generate again the .gls
+
 $(FILE).pdf: FORCE
-	$(QUIET)$(call run-latex,$(FILE),$@); \
-	echo \#\#\#\#\#\# Was step: index, glossaries; \
-	$(call possibly-rerun,$(FILE),$@,latex_index)
+	$(QUIET)if [ -f $(TMPDIR)/$(FILE).index-done ]; \
+	then \
+	  egrep '\\cite\>' `cat $(TMPDIR)/$(FILE).index-done` $(TODEVNULL); \
+	  if [ $$? -eq 0 ]; then $(call run-latex,$*,$@); fi; \
+	  rm $(TMPDIR)/$(FILE).index-done; \
+	  echo \#\#\#\#\#\# Was step: index, glossaries; \
+	  $(call rerun,$(FILE),$@,latex_init); \
+	else \
+	  $(call rerun,$(FILE),$@,latex_index); \
+	fi; 
 
 endif
 
 ifeq ($(LATEXSTEP),latex_index)
 
 # Bibtex should be done here
-%.bbl: %.auxbbl
+%.bbl: $(TMPDIR)/%.auxbbl
 	$(QUIET)$(call run-bibtex,$*); \
-	if [ "$$?" -ne 0 ]; then $(call bibtex-color-log,$*); exit 1; fi
+	if [ "$$?" -ne 0 ]; then $(call bibtex-color-log,$*); exit 1; fi; \
+	touch $(TMPDIR)/$(FILE).bib-done
 
 $(FILE).pdf: FORCE
-	$(QUIET)$(call run-latex,$(FILE),$@); \
-	echo \#\#\#\#\#\# Was step: bibliography; \
+	$(QUIET)if [ -f $(TMPDIR)/$(FILE).bib-done ]; \
+	then \
+	  rm $(TMPDIR)/$(FILE).bib-done; \
+	  $(call run-latex,$(FILE),$@); \
+	  echo \#\#\#\#\#\# Was step: bibliography; \
+	fi; \
 	$(call possibly-rerun,$(FILE),$@,latex_refs)
 
 
