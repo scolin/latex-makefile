@@ -470,5 +470,5 @@ FORCE:
 
 
 %.html: %.pdf
-	$(HEVEA) $*.hva $<
+	$(HEVEA) $*.hva $*
 
