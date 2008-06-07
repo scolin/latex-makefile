@@ -607,6 +607,7 @@ ifeq ($(LATEXSTEP),latex_index)
 %.bbl: $(TMPDIR)/%.auxbbl
 	$(QUIET)$(call run-bibtex,$*); \
 	if [ "$$?" -ne 0 ]; then $(call bibtex-color-log,$*); exit 1; fi; \
+	$(call bibtex-color-log,$*); \
 	touch $(TMPDIR)/$(FILE).bib-done
 
 $(FILE).pdf: FORCE
