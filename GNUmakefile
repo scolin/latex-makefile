@@ -433,7 +433,7 @@ test-run-again	= egrep -q '^(.*Rerun .*|No file $1\.[^.]+\.|No file [^ ]+\.bbl\.
 
 # $(call rerun,<source stem>,<produced dvi/ps/pdf file>,<step LaTeX compilation>)
 define rerun
-make -s LATEXSTEP=$3 FILE=$1 $2
+$(MAKE) -s LATEXSTEP=$3 FILE=$1 $2
 endef
 
 # $(call possibly-rerun,<source stem>,<produced dvi/ps/pdf file>,<step LaTeX compilation>)
@@ -491,7 +491,10 @@ unsafe-purge: purge
 .SUFFIXES: 
 .SUFFIXES: .tex .dvi .ps .pdf .html .aux .deps .vars \
 .idx .ind .gls .glo .ist .bbl \
-.auxbbl .auxbbl.cookie
+.auxbbl .auxbbl.cookie \
+.auxglo .auxglo.cookie \
+.auxist .auxist.cookie \
+.auxidx .auxidx.cookie
 
 $(TMPDIR)/$(FILE).aux.flat: $(FILE).aux
 	$(QUIET)$(call flatten-aux,$<,$@)
