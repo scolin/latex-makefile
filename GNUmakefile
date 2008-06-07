@@ -28,6 +28,7 @@ BIBFLAGS ?= -min-crossrefs=1
 # PROGRAMS:
 # Unix utilities with particular parameters
 #SORT		:= LC_ALL=C sort
+SED		:= sed
 # == LaTeX (tetex-provided) ==
 # TODO: TeXlive now ?
 BIBTEX          := bibtex $(BIBFLAGS)
@@ -150,7 +151,7 @@ replace-if-different-and-remove	= \
 #
 # $(call get-inputs,<stem>,<target files>)
 define get-inputs
-sed \
+$(SED) \
 -e '/^INPUT/!d' \
 -e 's!^INPUT !!' \
 -e '/^\/.*$$/d' \
@@ -189,7 +190,7 @@ endef
 # 
 define update_clean_file
 egrep '^OUTPUT' $(TMPDIR)/$1.fls | \
-sed -e 's/^OUTPUT //' | \
+$(SED) -e 's/^OUTPUT //' | \
 egrep '\.maf$$|\.ilg$$|\.glg$$|\.blg$$|\.out$$|\.log$$|\.lot$$|\.lof$$|\.toc$$|\.mlt[0-9]*$$|\.mlf[0-9]*$$|\.mtc[0-9]*$$|\.nav$$|\.snm$$|\.glo$$|\.gls$$|\.idx$$|\.ind$$|\.ist$$|\.aux$$' \
  >$(TMPDIR)/$1.clean.cookie; \
 $(call update_file,$(TMPDIR)/$1.clean)
@@ -201,7 +202,7 @@ endef
 # 
 define update_purge_file
 egrep '^OUTPUT' $(TMPDIR)/$1.fls | \
-sed -e 's/^OUTPUT //' | \
+$(SED) -e 's/^OUTPUT //' | \
 egrep '\.pdf$$|\.ps$$|\.dvi$$' \
  >$(TMPDIR)/$1.purge.cookie; \
 $(call update_file,$(TMPDIR)/$1.purge)
@@ -223,20 +224,20 @@ endef
 # file" in the .log, and vice-versa
 #
 define get-bbl-deps
-bblstems1=`sed -e '/^No file \(.*\.bbl\)\./!d' -e 's/No file \(.*\)\.bbl\./\1/g' $(TMPDIR)/$1.log | sort | uniq`; \
-bblstems2=`sed -e '/^INPUT.*\.bbl$$/!d' -e 's!^INPUT \(\./\)\{0,1\}\(.*\)\.bbl$$!\2!' $(TMPDIR)/$1.fls | sort | uniq`; \
+bblstems1=`$(SED) -e '/^No file \(.*\.bbl\)\./!d' -e 's/No file \(.*\)\.bbl\./\1/g' $(TMPDIR)/$1.log | sort | uniq`; \
+bblstems2=`$(SED) -e '/^INPUT.*\.bbl$$/!d' -e 's!^INPUT \(\./\)\{0,1\}\(.*\)\.bbl$$!\2!' $(TMPDIR)/$1.fls | sort | uniq`; \
 bblstems="$$bblstems1 $$bblstems2"; \
 for i in $$bblstems; \
 do \
   echo $2: $$i.bbl >>$(TMPDIR)/$1.deps; \
-  sed \
+  $(SED) \
   -e '/^\\bibdata/!d' \
   -e 's/\\bibdata{\([^}]*\)}/\1,/' \
   -e 's/,\{2,\}/,/g' \
   -e 's/,/.bib /g' \
   -e 's/ \{1,\}$$//' \
   $$i.aux | xargs $(KPSEWHICH) - | \
-  sed -e "s/^/$$i.bbl: /" | \
+  $(SED) -e "s/^/$$i.bbl: /" | \
   sort | uniq >>$(TMPDIR)/$1.deps; \
   echo $$i.aux >>$(TMPDIR)/$1.clean ;\
   echo $$i.blg >>$(TMPDIR)/$1.clean ;\
@@ -251,23 +252,23 @@ endef
 # $(call make-inds-deps,<stem>,<targets>)
 #
 define make-inds-deps
-indstems1=`sed -e '/^No file \(.*\.ind\)\./!d' -e 's/No file \(.*\.ind\)\./\1/g' $(TMPDIR)/$1.log | sort | uniq`; \
-indstems2=`sed -e '/^INPUT.*\.ind$$/!d' -e 's!^INPUT \(\./\)\{0,1\}\(.*\.ind\)$$!\2!' $(TMPDIR)/$1.fls | sort | uniq`; \
-glsstems1=`sed -e '/^No file \(.*\.gls\)\./!d' -e 's/No file \(.*\.gls\)\./\1/g' $(TMPDIR)/$1.log | sort | uniq`; \
-glsstems2=`sed -e '/^INPUT.*\.gls$$/!d' -e 's!^INPUT \(\./\)\{0,1\}\(.*\.gls\)$$!\2!' $(TMPDIR)/$1.fls | sort | uniq`; \
+indstems1=`$(SED) -e '/^No file \(.*\.ind\)\./!d' -e 's/No file \(.*\.ind\)\./\1/g' $(TMPDIR)/$1.log | sort | uniq`; \
+indstems2=`$(SED) -e '/^INPUT.*\.ind$$/!d' -e 's!^INPUT \(\./\)\{0,1\}\(.*\.ind\)$$!\2!' $(TMPDIR)/$1.fls | sort | uniq`; \
+glsstems1=`$(SED) -e '/^No file \(.*\.gls\)\./!d' -e 's/No file \(.*\.gls\)\./\1/g' $(TMPDIR)/$1.log | sort | uniq`; \
+glsstems2=`$(SED) -e '/^INPUT.*\.gls$$/!d' -e 's!^INPUT \(\./\)\{0,1\}\(.*\.gls\)$$!\2!' $(TMPDIR)/$1.fls | sort | uniq`; \
 indstems="$$indstems1 $$indstems2"; \
 glsstems="$$glsstems1 $$glsstems2"; \
 if [ "x$$indstems" != "x " ]; \
 then \
   echo $2: $$indstems >>$(TMPDIR)/$1.deps; \
   echo $$indstems >>$(TMPDIR)/$1.purge; \
-  echo $$indstems | sed -e 's/\.ind\( \|$$\)/.ilg\1/g' >>$(TMPDIR)/$1.clean ;\
+  echo $$indstems | $(SED) -e 's/\.ind\( \|$$\)/.ilg\1/g' >>$(TMPDIR)/$1.clean ;\
 fi; \
 if [ "x$$glsstems" != "x " ]; \
 then \
   echo $2: $$glsstems >>$(TMPDIR)/$1.deps; \
   echo $$glsstems >>$(TMPDIR)/$1.purge; \
-  echo $$glsstems | sed -e 's/\.gls\( \|$$\)/.glg\1/g' >>$(TMPDIR)/$1.clean ;\
+  echo $$glsstems | $(SED) -e 's/\.gls\( \|$$\)/.glg\1/g' >>$(TMPDIR)/$1.clean ;\
 fi ;\
 $(call trim,$(TMPDIR)/$1.clean) ;\
 $(call trim,$(TMPDIR)/$1.purge)
@@ -279,7 +280,7 @@ endef
 #
 # $(call colorize-latex-errors,<log file>)
 define colorize-latex-errors
-sed \
+$(SED) \
 -e '/^! LaTeX Error: File/d' \
 -e '/^! LaTeX Error: Cannot determine size/d' \
 -e '/[^ (]*\.tex/{s/[^ (]*\.tex/$(C_ERROR)&$(C_RESET)/g; p}' \
@@ -301,7 +302,7 @@ endef
 #
 # $(call flatten-aux,<toplevel aux>,<output file>)
 define flatten-aux
-sed \
+$(SED) \
 -e '/\\@input{\(.*\)}/{' \
 -e     's//\1/' \
 -e     'h' \
@@ -315,8 +316,8 @@ sed \
 -e '}' \
 -e 'd' \
 '$1' > "$(TMPDIR)/$1.$$$$.sed.make"; \
-sed -f "$(TMPDIR)/$1.$$$$.sed.make" '$1' > "$(TMPDIR)/$1.$$$$.make"; \
-sed \
+$(SED) -f "$(TMPDIR)/$1.$$$$.sed.make" '$1' > "$(TMPDIR)/$1.$$$$.make"; \
+$(SED) \
 -e '/^\\relax/d' \
 -e '/^\\bibcite/d' \
 -e 's/^\(\\newlabel{[^}]\{1,\}}\).*/\1/' \
@@ -328,7 +329,7 @@ endef
 # $(call make-auxbbl-file,<aux file>,<new-aux>)
 # -e '/^\\bibcite/p' is useless, looks like
 define make-auxbbl-file
-sed \
+$(SED) \
 -e '/^\\bibstyle/p' \
 -e '/^\\citation/p' \
 -e '/^\\bibdata/p' \
@@ -339,7 +340,7 @@ endef
 
 # Colorize LaTeX output.
 color_tex	:= \
-	sed -n \
+	$(SED) -n \
 	-e '/^[[:space:]]*Output written/{' \
 	-e '  s/.*(\([^)]\{1,\}\)).*/Success!  Wrote \1/' \
 	-e '  s/[[:digit:]]\{1,\}/$(C_INFO)&$(C_RESET)/g' \
@@ -371,7 +372,7 @@ color_tex	:= \
 
 # Colorize BibTeX output.
 color_bib	:= \
-	sed \
+	$(SED) \
 	-e 's/^Warning--.*/$(C_WARNING)&$(C_RESET)/' -e 't' \
 	-e '/---/,/^.[^:]/{' \
 	-e '  H' \
