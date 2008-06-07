@@ -228,6 +228,7 @@ define colorize-latex-errors
 sed \
 -e '/^! LaTeX Error: File/d' \
 -e '/^! LaTeX Error: Cannot determine size/d' \
+-e '/[^ (]*\.tex/{s/[^ (]*\.tex/$(C_ERROR)&$(C_RESET)/g; p}' \
 -e '/^! /,/^$$/{' \
 -e '  H' \
 -e '  /^$$/{' \
@@ -281,6 +282,7 @@ color_tex	:= \
 	-e 's/^LaTeX Warning:.*/$(C_WARNING)&$(C_RESET)/' -e 't' \
 	-e 's/^Underfull.*/$(C_WARNING)&$(C_RESET)/' -e 't' \
 	-e 's/^Overfull.*/$(C_WARNING)&$(C_RESET)/' -e 't' \
+	-e 's/^\#\#\#.*/$(C_WARNING)&$(C_RESET)/' -e 't' \
 	$(if $(VERBOSE),,-e 'd')
 
 # Colorize BibTeX output.
