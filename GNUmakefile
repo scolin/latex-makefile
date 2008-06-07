@@ -480,9 +480,11 @@ purge: clean
 
 # This target has the potential of removing user files
 # (use with caution)
-.PHONY: really-purge
-really-purge: purge
-
+.PHONY: unsafe-purge
+unsafe-purge: purge
+	$(QUIET)rm -f $(LATEXCLEAN) ;\
+	rm -f $(LATEXPURGE) ;\
+	rm -rf $(TMPDIR)
 
 .SUFFIXES: 
 .SUFFIXES: .tex .dvi .ps .pdf .html .aux .deps .vars \
