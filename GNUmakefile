@@ -190,7 +190,7 @@ endef
 define update_clean_file
 egrep '^OUTPUT' $(TMPDIR)/$1.fls | \
 sed -e 's/^OUTPUT //' | \
-egrep '\.maf$$|\.ilg$$|\.glg$$|\.blg$$|\.out$$|\.log$$|\.lot$$|\.lof$$|\.toc$$|\.mlt[0-9]*$$|\.mlf[0-9]*$$|\.mtc[0-9]*$$|\.nav$$|\.glo$$|\.gls$$|\.idx$$|\.ind$$|\.ist$$|\.aux$$' \
+egrep '\.maf$$|\.ilg$$|\.glg$$|\.blg$$|\.out$$|\.log$$|\.lot$$|\.lof$$|\.toc$$|\.mlt[0-9]*$$|\.mlf[0-9]*$$|\.mtc[0-9]*$$|\.nav$$|\.snm$$|\.glo$$|\.gls$$|\.idx$$|\.ind$$|\.ist$$|\.aux$$' \
  >$(TMPDIR)/$1.clean.cookie; \
 $(call update_file,$(TMPDIR)/$1.clean)
 endef
