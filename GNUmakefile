@@ -150,13 +150,17 @@ replace-if-different-and-remove	= \
 define get-inputs
 sed \
 -e '/^INPUT/!d' \
--e 's!^INPUT \(\./\)\{0,1\}!$2: !' \
--e '/\.tex$$/p' \
--e '/\.cls$$/p' \
--e '/\.sty$$/p' \
--e '/\.png$$/p' \
--e '/\.jpg$$/p' \
--e 'd' \
+-e 's!^INPUT !!' \
+-e '/^\/.*$$/d' \
+-e '/^[a-zA-Z]:/d' \
+-e '/\.aux$$/d' \
+-e '/\.bbl$$/d' \
+-e '/\.ind$$/d' \
+-e '/\.gls$$/d' \
+-e '/\.nav$$/d' \
+-e '/\.toc$$/d' \
+-e '/\.out$$/d' \
+-e 's/^.*$$/$2: &/' \
 $1 | sort | uniq
 endef
 
@@ -329,7 +333,7 @@ endef
 run-bibtex = $(BIBTEX) $1 $(TODEVNULL)
 
 # $(call test-run-again,<source stem>)
-test-run-again	= egrep -q '^(.*Rerun .*|No file $1\.[^.]+\.)$$' $1.log
+test-run-again	= egrep -q '^(.*Rerun .*|No file $1\.[^.]+\.|No file [^ ]+\.bbl\.|LaTeX Warning: There were undefined references\.)$$' $1.log
 
 # $(call possibly-rerun,<source stem>,<produced dvi/ps/pdf file>,<step LaTeX compilation>)
 define possibly-rerun
@@ -356,6 +360,7 @@ endef
 
 .PHONY: all
 all: $(FILE).pdf
+
 
 # Include if we're not cleaning
 #ifeq "$(hascleangoals)" ""
