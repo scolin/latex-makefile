@@ -29,6 +29,7 @@ BIBFLAGS ?= -min-crossrefs=1
 # Unix utilities with particular parameters
 #SORT		:= LC_ALL=C sort
 SED		:= sed
+CP		:= cp -RpP
 # == LaTeX (tetex-provided) ==
 # TODO: TeXlive now ?
 BIBTEX          := bibtex $(BIBFLAGS)
@@ -413,7 +414,7 @@ then mv -f latex.fls "$1".fls; \
 fi; fi; \
 if [ ! -d $(TMPDIR) ]; then mkdir $(TMPDIR); fi; \
 mv "$1".fls $(TMPDIR); \
-cp "$1".log $(TMPDIR); \
+$(CP) "$1".log $(TMPDIR); \
 $(call update_clean_file,$1) ;\
 $(call update_purge_file,$1) ;\
 if [ "$$latexrunerror" -ne 0 ]; then rm -f $2; $(call latex-error-log,$1); exit 1; fi
@@ -507,16 +508,16 @@ $(TMPDIR)/%.auxbbl.cookie: %.aux
 
 
 $(TMPDIR)/%.auxidx.cookie: %.idx
-	$(QUIET)cp -a $< $@
+	$(QUIET)$(CP) $< $@
 
 $(TMPDIR)/%.auxidx: $(TMPDIR)/%.auxidx.cookie
 	$(QUIET)$(call replace-if-different-and-remove,$<,$@)
 
 $(TMPDIR)/%.auxglo.cookie: %.glo
-	$(QUIET)cp -a $< $@
+	$(QUIET)$(CP) $< $@
 
 $(TMPDIR)/%.auxist.cookie: %.ist
-	$(QUIET)cp -a $< $@
+	$(QUIET)$(CP) $< $@
 
 $(TMPDIR)/%.auxglo: $(TMPDIR)/%.auxglo.cookie
 	$(QUIET)$(call replace-if-different-and-remove,$<,$@)
