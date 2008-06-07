@@ -197,8 +197,6 @@ endef
 # clunky to extract suitable extensions.
 #
 # $(call get-inputs,<parsed file>,<target files>)
--e '/\.png$$/p' \
--e '/\.jpg$$/p' \
 define get-inputs
 $(SED) \
 -e '/^INPUT/!d' \
@@ -206,6 +204,8 @@ $(SED) \
 -e '/\.tex$$/p' \
 -e '/\.cls$$/p' \
 -e '/\.sty$$/p' \
+-e '/\.png$$/p' \
+-e '/\.jpg$$/p' \
 -e 'd' \
 $1 | $(SORT) | $(UNIQ)
 endef
