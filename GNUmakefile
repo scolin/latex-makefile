@@ -109,12 +109,14 @@ endif
 # MORECLEAN is specified by the user, if he wants to remove additional
 # files when cleaning
 LATEXCLEAN = $(FILE).log $(FILE).out $(FILE).aux $(FILE).fls
-LATEXCLEAN+= $(FILE).toc $(FILE).lof $(FILE).lot
 LATEXCLEAN+= $(FILE).blg
-LATEXCLEAN+= $(FILE).idx $(FILE).ilg
-LATEXCLEAN+= $(FILE).glo $(FILE).ist $(FILE).glg
+LATEXCLEAN+= $(FILE).idx $(FILE).ilg $(FILE).ist 
+LATEXCLEAN+= $(FILE).glo $(FILE).glg
+LATEXCLEAN+= $(FILE).toc $(FILE).lof $(FILE).lot
+LATEXCLEAN+= $(FILE).mtc* $(FILE).mlf* $(FILE).mlt* $(FILE).maf
 LATEXCLEAN+= $(FILE).nav $(FILE).snm  $(FILE).vrb 
 LATEXCLEAN+= $(FILE).aux.make $(FILE).auxbbl $(FILE).auxdvi.make
+LATEXCLEAN+= *.aux *.blg
 LATEXCLEAN+= $(FILE).haux $(FILE).htoc
 
 #LATEXCLEAN+= bu*.bbl bu*.aux bu*.blg
@@ -124,8 +126,7 @@ LATEXCLEAN+= $(MORECLEAN)
 # MOREPURGE: see MORECLEAN, but for the purge target
 LATEXPURGE = $(FILE).ps $(FILE).dvi $(FILE).pdf $(FILE).deps $(FILE).vars
 LATEXPURGE+= $(FILE).bbl $(FILE).ind $(FILE).gls
-LATEXPURGE+= $(FILE).mtc* $(FILE).mlf* $(FILE).mlt* $(FILE).maf
-LATEXPURGE+= $(FILE).nav
+LATEXPURGE+= bu*.bbl
 LATEXPURGE+= $(FILE).html
 LATEXPURGE+= $(MOREPURGE)
 
@@ -170,6 +171,53 @@ sed \
 -e 's/^.*$$/$2: &/' \
 $1 | sort | uniq
 endef
+
+# $(call update_file,<filename>)
+define update_file
+if [ -f $1 ]; then cat $1 >>$1.cookie; fi ; \
+sort $1.cookie | uniq >$1; \
+rm $1.cookie
+endef
+
+# In purge : dvi,ps,pdf
+# In clean : maf,ilg,glg,blg,out,log
+#            lot,lof,toc,mlt*,mlf*,mtc*,nav
+#            glo,gls,idx,ind,ist,aux
+
+# This function will get the generated files and add them to the
+# cleaning lists 
+# $(call update_clean_file,<stem>)
+# 
+define update_clean_file
+egrep '^OUTPUT' $(TMPDIR)/$1.fls | \
+sed -e 's/^OUTPUT //' | \
+egrep '\.maf$$|\.ilg$$|\.glg$$|\.blg$$|\.out$$|\.log$$|\.lot$$|\.lof$$|\.toc$$|\.mlt[0-9]*$$|\.mlf[0-9]*$$|\.mtc[0-9]*$$|\.nav$$|\.glo$$|\.gls$$|\.idx$$|\.ind$$|\.ist$$|\.aux$$' \
+ >$(TMPDIR)/$1.clean.cookie; \
+$(call update_file,$(TMPDIR)/$1.clean)
+endef
+
+# This function will get the generated files and add them to the
+# cleaning lists 
+# $(call update_clean_file,<stem>)
+# 
+define update_purge_file
+egrep '^OUTPUT' $(TMPDIR)/$1.fls | \
+sed -e 's/^OUTPUT //' | \
+egrep '\.pdf$$|\.ps$$|\.dvi$$' \
+ >$(TMPDIR)/$1.purge.cookie; \
+$(call update_file,$(TMPDIR)/$1.purge)
+endef
+
+# $(call trim,<file>) removes duplicate lines from this files
+define trim
+mv $1 $1.cookie ;\
+sort $1.cookie | uniq >$1 ;\
+rm $1.cookie
+endef
+
+
+# Note: nested "call" works here because the parameters are known
+# statically
 
 # $(call get-bbl-deps,<stem>,,<targets>,<out file>) 
 # We exploit the fact that a bbl appearing in the .fls is not "No
@@ -356,6 +404,11 @@ run-bibtex = $(BIBTEX) $1 $(TODEVNULL)
 # $(call test-run-again,<source stem>)
 test-run-again	= egrep -q '^(.*Rerun .*|No file $1\.[^.]+\.|No file [^ ]+\.bbl\.|LaTeX Warning: There were undefined references\.)$$' $1.log
 
+# $(call rerun,<source stem>,<produced dvi/ps/pdf file>,<step LaTeX compilation>)
+define rerun
+make -s LATEXSTEP=$3 FILE=$1 $2
+endef
+
 # $(call possibly-rerun,<source stem>,<produced dvi/ps/pdf file>,<step LaTeX compilation>)
 define possibly-rerun
 $(call test-run-again,$1); \
@@ -432,10 +485,17 @@ ifndef LATEXSTEP
 %.bbl: %.auxbbl
 	$(QUIET)true
 
-%.pdf:
-	$(QUIET)echo Step: initial
+# We need to build the .deps only at the first step
+# SC: not exactly...
+
+# We force the re-generation : the user expects something to happen
+# when typing "make", at the moment forcing a rebuild is the safe bet,
+# dependency tracking in LaTeX being somewhat difficult with all the
+# packages that rely on/build intermediate files.
+%.pdf: FORCE
 	$(QUIET)$(call run-latex,$*,$@); \
 	$(call make-deps,$*); \
+	echo \#\#\#\#\#\# Was step: initial ; \
 	$(call possibly-rerun,$*,$@,latex_init)
 
 endif
@@ -452,8 +512,8 @@ ifeq ($(LATEXSTEP),latex_init)
 	$(QUIET)true
 
 $(FILE).pdf: FORCE
-	$(QUIET)echo Step: index, glossaries
 	$(QUIET)$(call run-latex,$(FILE),$@); \
+	echo \#\#\#\#\#\# Was step: index, glossaries; \
 	$(call possibly-rerun,$(FILE),$@,latex_index)
 
 endif
@@ -466,8 +526,8 @@ ifeq ($(LATEXSTEP),latex_index)
 	if [ "$$?" -ne 0 ]; then $(call bibtex-color-log,$*); exit 1; fi
 
 $(FILE).pdf: FORCE
-	$(QUIET)echo Step: bibliography
 	$(QUIET)$(call run-latex,$(FILE),$@); \
+	echo \#\#\#\#\#\# Was step: bibliography; \
 	$(call possibly-rerun,$(FILE),$@,latex_refs)
 
 
@@ -476,8 +536,8 @@ endif
 ifeq ($(LATEXSTEP),latex_refs)
 
 $(FILE).pdf: FORCE
-	$(QUIET)echo Step: cross-references
 	$(QUIET)$(call run-latex,$(FILE),$@); \
+	echo \#\#\#\#\#\# Was step: cross-references; \
 	$(call possibly-rerun,$(FILE),$@,latex_links)
 
 
@@ -486,11 +546,12 @@ endif
 ifeq ($(LATEXSTEP),latex_links)
 
 $(FILE).pdf: FORCE
-	$(QUIET)echo Step: last chance to solve undefined references
 	$(QUIET)$(call run-latex,$(FILE),$@); \
+	echo \#\#\#\#\#\# Was step: last chance to solve undefined references; \
 	$(call latex-color-log,$(FILE))
 
 endif
+
 
 FORCE:
 
