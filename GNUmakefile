@@ -22,23 +22,9 @@ BARELATEX ?= pdflatex
 BIBFLAGS ?= -min-crossrefs=1
 #VERBOSE := y
 
-# EXTERNAL PROGRAMS:
-# = ESSENTIAL PROGRAMS =
-# == Basic Shell Utilities ==
-CAT		:= cat
-CP		:= cp -f
-DIFF		:= diff
-ECHO		:= echo
-EGREP		:= egrep
-ENV		:= env
-MV		:= mv -f
-RM		:= rm -f
-SED		:= sed
-SORT		:= sort
-TOUCH		:= touch
-UNIQ		:= uniq
-WHICH		:= which
-XARGS		:= xargs
+# PROGRAMS:
+# Unix utilities with particular parameters
+#SORT		:= LC_ALL=C sort
 # == LaTeX (tetex-provided) ==
 # TODO: TeXlive now ?
 BIBTEX          := bibtex $(BIBFLAGS)
@@ -53,37 +39,21 @@ MAKEINDEX       := makeindex -q
 # = OPTIONAL PROGRAMS =
 # == Makefile Color Output ==
 TPUT		:= tput
-# == Beamer Enlarged Output ==
-PSNUP		?= psnup
-# == Viewing Stuff ==
-VIEW_POSTSCRIPT	?= gv
-VIEW_PDF	?= xpdf
-VIEW_GRAPHICS	?= display
 
 # Characters that are hard to specify in certain places
 space		:= $(empty) $(empty)
-colon		:= \:
-comma		:= ,
 
-# Useful shell definitions
-# TODO: bashisms !!!
-sh_true		:= :
-sh_false	:= ! :
-
-
-# Turn command echoing back on with VERBOSE=1
+# Turn command echoing back on with VERBOSE=something
 ifndef VERBOSE
 QUIET	:= @
-endif
-
-# Turn on shell debugging with SHELL_DEBUG=1
-# (EVERYTHING is echoed, even $(shell ...) invocations)
-ifdef SHELL_DEBUG
+TODEVNULL := > /dev/null
+else
 SHELL	+= -x
 endif
 
-# Get the name of this makefile (always right in 3.80, often right in 3.79)
-# This is only really used for documentation, so it isn't too serious.
+# Get the name of this makefile (always right in 3.80, often right in
+# 3.79) This is only really used for documentation, so it isn't too
+# serious.
 ifdef MAKEFILE_LIST
 this_file	:= $(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST))
 else
@@ -123,8 +93,8 @@ C_ERROR		:= $(call get-color,ERROR)
 C_INFO		:= $(call get-color,INFO)
 C_RESET		:= $(reset)
 
-# Check that clean targets are not combined with other targets (weird things
-# happen, and it's not easy to fix them)
+# Check that clean targets are not combined with other targets (weird
+# things happen, and it's not easy to fix them)
 hascleangoals	:= $(if $(sort $(filter clean purge,$(MAKECMDGOALS))),1)
 hasbuildgoals	:= $(if $(sort $(filter-out clean purge,$(MAKECMDGOALS))),1)
 ifneq "$(hasbuildgoals)" ""
@@ -161,33 +131,10 @@ LATEXPURGE+= $(MOREPURGE)
 # Utility Functions and Definitions
 #
 
-test-exists		= [ -e '$1' ]
-test-different		= ! $(DIFF) -q '$1' '$2' &>/dev/null
+test-different		= ! diff -q '$1' '$2' &>/dev/null
 
-copy-if-different	= $(call test-different,$1,$2) && $(CP) '$1' '$2'
-copy-if-exists		= $(call test-exists,$1) && $(CP) '$1' '$2'
-move-if-different	= $(call test-different,$1,$2) && $(MV) '$1' '$2'
 replace-if-different-and-remove	= \
-	$(call test-different,$1,$2) && $(MV) '$1' '$2' || $(RM) '$1'
-
-test-exists-and-different	= \
-	$(call test-exists,$2) && $(call test-different,$1,$2)
-
-get-default	= $(if $1,$1,$2)
-
-# Gives a reassuring message about the failure to find include files
-# $(call include-message,<list of include files>)
-define include-message
-$(strip \
-$(if $(filter-out $(wildcard $1),$1),\
-	$(shell $(ECHO) \
-	"$(C_INFO)NOTE: You may ignore warnings about the"\
-	"following files:" >&2;\
-	$(ECHO) >&2; \
-	$(foreach s,$(filter-out $(wildcard $1),$1),$(ECHO) '     $s' >&2;)\
-	$(ECHO) "$(C_RESET)" >&2)
-))
-endef
+	$(call test-different,$1,$2) && mv -f '$1' '$2' || rm -f '$1'
 
 # Outputs all source dependencies to stdout.  The first argument is the file to
 # be parsed, the second is a list of files that will show up as dependencies in
@@ -198,7 +145,7 @@ endef
 #
 # $(call get-inputs,<parsed file>,<target files>)
 define get-inputs
-$(SED) \
+sed \
 -e '/^INPUT/!d' \
 -e 's!^INPUT \(\./\)\{0,1\}!$2: !' \
 -e '/\.tex$$/p' \
@@ -207,38 +154,38 @@ $(SED) \
 -e '/\.png$$/p' \
 -e '/\.jpg$$/p' \
 -e 'd' \
-$1 | $(SORT) | $(UNIQ)
+$1 | sort | uniq
 endef
 
 # $(call get-bbl-deps,<stem>,,<targets>,<out file>)
 # We exploit the fact that a bbl appearing in the .fls is not "No file" in the .log, and vice-versa
 define get-bbl-deps
-bblstems1=`$(SED) -e '/^No file \(.*\.bbl\)\./!d' -e 's/No file \(.*\)\.bbl\./\1/g' $1.log | $(SORT) | $(UNIQ)`; \
-bblstems2=`$(SED) -e '/^INPUT.*\.bbl$$/!d' -e 's!^INPUT \(\./\)\{0,1\}\(.*\)\.bbl$$!\2!' $1.fls | $(SORT) | $(UNIQ)`; \
+bblstems1=`sed -e '/^No file \(.*\.bbl\)\./!d' -e 's/No file \(.*\)\.bbl\./\1/g' $1.log | sort | uniq`; \
+bblstems2=`sed -e '/^INPUT.*\.bbl$$/!d' -e 's!^INPUT \(\./\)\{0,1\}\(.*\)\.bbl$$!\2!' $1.fls | sort | uniq`; \
 bblstems="$$bblstems1 $$bblstems2"; \
 if [ ! -f $3 ]; then touch $3; fi; \
 for i in $$bblstems; \
 do \
   echo $2: $$i.bbl >>$3; \
-  $(SED) \
+  sed \
   -e '/^\\bibdata/!d' \
   -e 's/\\bibdata{\([^}]*\)}/\1,/' \
   -e 's/,\{2,\}/,/g' \
   -e 's/,/.bib /g' \
   -e 's/ \{1,\}$$//' \
-  $$i.aux | $(XARGS) $(KPSEWHICH) - | \
-  $(SED) -e "s/^/$$i.bbl: /" | \
-  $(SORT) | $(UNIQ) >>$3; \
+  $$i.aux | xargs $(KPSEWHICH) - | \
+  sed -e "s/^/$$i.bbl: /" | \
+  sort | uniq >>$3; \
 done
 endef
 
 # Compute index and glossary dependencies
 # $(call make-inds-deps,<stem>,<targets>,<out file>)
 define make-inds-deps
-indstems1=`$(SED) -e '/^No file \(.*\.ind\)\./!d' -e 's/No file \(.*\.ind\)\./\1/g' $1.log | $(SORT) | $(UNIQ)`; \
-indstems2=`$(SED) -e '/^INPUT.*\.ind$$/!d' -e 's!^INPUT \(\./\)\{0,1\}\(.*\.ind\)$$!\2!' $1.fls | $(SORT) | $(UNIQ)`; \
-glsstems1=`$(SED) -e '/^No file \(.*\.gls\)\./!d' -e 's/No file \(.*\.gls\)\./\1/g' $1.log | $(SORT) | $(UNIQ)`; \
-glsstems2=`$(SED) -e '/^INPUT.*\.gls$$/!d' -e 's!^INPUT \(\./\)\{0,1\}\(.*\.gls\)$$!\2!' $1.fls | $(SORT) | $(UNIQ)`; \
+indstems1=`sed -e '/^No file \(.*\.ind\)\./!d' -e 's/No file \(.*\.ind\)\./\1/g' $1.log | sort | uniq`; \
+indstems2=`sed -e '/^INPUT.*\.ind$$/!d' -e 's!^INPUT \(\./\)\{0,1\}\(.*\.ind\)$$!\2!' $1.fls | sort | uniq`; \
+glsstems1=`sed -e '/^No file \(.*\.gls\)\./!d' -e 's/No file \(.*\.gls\)\./\1/g' $1.log | sort | uniq`; \
+glsstems2=`sed -e '/^INPUT.*\.gls$$/!d' -e 's!^INPUT \(\./\)\{0,1\}\(.*\.gls\)$$!\2!' $1.fls | sort | uniq`; \
 indstems="$$indstems1 $$indstems2"; \
 glsstems="$$glsstems1 $$glsstems2"; \
 if [ ! -f $3 ]; then touch $3; fi; \
@@ -249,7 +196,7 @@ endef
 # Makes a an aux file that only has stuff relevant to the dvi in it
 # $(call make-auxdvi-file,<flattened-aux>,<new-aux>)
 define make-auxdvi-file
-$(SED) \
+sed \
 -e '/^\\newlabel/!d' \
 $1 > $2
 endef
@@ -257,18 +204,18 @@ endef
 # Makes an aux file that only has stuff relevant to the bbl in it
 # $(call make-auxbbl-file,<flattened-aux>,<new-aux>)
 define make-auxbbl-file
-$(SED) \
+sed \
 -e '/^\\newlabel/d' \
 $1 > $2
 endef
 
 
-# Colorizes real, honest-to-goodness LaTeX errors that can't be overcome with
-# recompilation.
+# Colorizes real, honest-to-goodness LaTeX errors that can't be
+# overcome with recompilation.
 #
 # $(call colorize-latex-errors,<log file>)
 define colorize-latex-errors
-$(SED) \
+sed \
 -e '/^! LaTeX Error: File/d' \
 -e '/^! LaTeX Error: Cannot determine size/d' \
 -e '/^! /,/^$$/{' \
@@ -284,12 +231,12 @@ $1
 endef
 
 
-# Get all important .aux files from the top-level .aux file and merges them all
-# into a single file, which it outputs to stdout.
+# Get all important .aux files from the top-level .aux file and merges
+# them all into a single file, which it outputs to stdout.
 #
 # $(call flatten-aux,<toplevel aux>,<output file>)
 define flatten-aux
-$(SED) \
+sed \
 -e '/\\@input{\(.*\)}/{' \
 -e     's//\1/' \
 -e     'h' \
@@ -303,27 +250,18 @@ $(SED) \
 -e '}' \
 -e 'd' \
 '$1' > "$1.$$$$.sed.make"; \
-$(SED) -f "$1.$$$$.sed.make" '$1' > "$1.$$$$.make"; \
-$(SED) \
+sed -f "$1.$$$$.sed.make" '$1' > "$1.$$$$.make"; \
+sed \
 -e '/^\\relax/d' \
 -e '/^\\bibcite/d' \
 -e 's/^\(\\newlabel{[^}]\{1,\}}\).*/\1/' \
-"$1.$$$$.make" | $(SORT) > '$2'; \
-$(RM) $1.$$$$.{sed.,}make
+"$1.$$$$.make" | sort > '$2'; \
+rm -f $1.$$$$.{sed.,}make
 endef
-
-# Generate pdf from postscript
-ps2pdf_normal	:= $(PS2PDF_NORMAL)
-ps2pdf_embedded	:= \
-	$(PS2PDF_EMBED) \
-	-dPDFSETTINGS=/printer \
-	-dEmbedAllFonts=true \
-	-dSubsetFonts=true \
-	-dMaxSubsetPct=100
 
 # Colorize LaTeX output.
 color_tex	:= \
-	$(SED) \
+	sed \
 	-e '/^[[:space:]]*Output written/{' \
 	-e ' s/.*(\([^)]\{1,\}\)).*/Success!  Wrote \1/' \
 	-e ' s/[[:digit:]]\{1,\}/$(C_INFO)&$(C_RESET)/g' \
@@ -337,7 +275,7 @@ color_tex	:= \
 
 # Colorize BibTeX output.
 color_bib	:= \
-	$(SED) \
+	sed \
 	-e 's/^Warning--.*/$(C_WARNING)&$(C_RESET)/' -e 't' \
 	-e '/---/,/^.[^:]/{' \
 	-e '  H' \
@@ -364,31 +302,6 @@ latex-error-log	= $(call colorize-latex-errors,$1.log)
 # $(call bibtex-color-log,<LaTeX stem>)
 bibtex-color-log	= $(color_bib) $1.blg
 
-# Make beamer output big enough to print on a full page.  Landscape doesn't
-# seem to work correctly.
-enlarge_beamer	= $(PSNUP) -l -1 -W128mm -H96mm -pletter
-
-# $(call test-run-again,<source stem>)
-test-run-again	= $(EGREP) -q '^(.*Rerun .*|No file $1\.[^.]+\.)$$' $1.log
-
-# This tests whether the dvi target should be run at all, from viewing the log
-# file.
-# $(call test-log-for-need-to-run,<source stem>)
-define test-log-for-need-to-run
-$(SED) \
--e '/^No file $(subst .,\\.,$1)\.aux\./d' \
-$1.log \
-| $(EGREP) -q '^(.*Rerun .*|No file $1\.[^.]+\.|LaTeX Warning: File.*)$$'
-endef
-
-# $(call possibly-rerun,<source stem>,<produced dvi/ps/pdf file>,<step LaTeX compilation>)
-define possibly-rerun
-$(call test-run-again,$1); \
-if [ "$$?" -eq 0 ]; then mv $(2) $(2).tmp; $(MAKE) LATEXSTEP=$(3) $(2); \
-else if [ -f $(2).tmp ]; then rm $(2).tmp; fi; $(call latex-color-log,$1); fi
-endef
-
-
 # LaTeX invocations
 #
 # $(call latex,<tex file>)
@@ -399,18 +312,15 @@ run-latex	= $(LATEX) $1 > /dev/null
 # $(call run-bibtex,<tex stem>)
 run-bibtex = $(BIBTEX) $1 > /dev/null
 
-# Convert DVI to Postscript
-# $(call make-ps,<dvi file>,<ps file>,<log file>,[<paper size>])
-make-ps		= \
-	$(DVIPS) -o '$2' $(if $(filter-out BEAMER,$4),-t$(firstword $4),) '$1' \
-		$(if $(filter BEAMER,$4),| $(enlarge_beamer)) &> $3
+# $(call test-run-again,<source stem>)
+test-run-again	= egrep -q '^(.*Rerun .*|No file $1\.[^.]+\.)$$' $1.log
 
-# Convert Postscript to PDF
-# $(call make-pdf,<ps file>,<pdf file>,<log file>,<embed file>)
-make-pdf	= \
-	$(if $(filter 1,$(shell $(CAT) '$4')),\
-		$(ps2pdf_embedded),\
-		$(ps2pdf_normal)) '$1' '$2' &> $3
+# $(call possibly-rerun,<source stem>,<produced dvi/ps/pdf file>,<step LaTeX compilation>)
+define possibly-rerun
+$(call test-run-again,$1); \
+if [ "$$?" -eq 0 ]; then mv $(2) $(2).tmp; $(MAKE) LATEXSTEP=$(3) $(2); \
+else if [ -f $(2).tmp ]; then rm $(2).tmp; fi; $(call latex-color-log,$1); fi
+endef
 
 # Will create the stem.d dependencies file
 # $(call make-deps,<stem>)
@@ -436,19 +346,18 @@ endef
 .PHONY: all
 all: $(FILE).pdf
 
-
 # Include if we're not cleaning
 ifeq "$(hascleangoals)" ""
--include $(FILE).d $(call include-message,$(FILE).d)
+-include $(FILE).d
 endif
 
 .PHONY: clean
 clean:
-	$(QUIET)$(RM) $(LATEXCLEAN)
+	$(QUIET)rm -f $(LATEXCLEAN)
 
 .PHONY: purge
 purge: clean
-	$(QUIET)$(RM) $(LATEXPURGE)
+	$(QUIET)rm -f $(LATEXPURGE)
 
 .SUFFIXES:
 .SUFFIXES: .done .tex .dvi .ps .pdf .html .aux .d .stamp .idx .ind .toc .lof .lot .bbl
