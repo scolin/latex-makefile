@@ -152,26 +152,31 @@ replace-if-different-and-remove	= \
 #
 # $(call get-inputs,<stem>,<target files>)
 define get-inputs
-$(SED) \
--e '/^INPUT/!d' \
--e 's!^INPUT !!' \
--e '/^\/.*$$/d' \
--e '/^[a-zA-Z]:/d' \
--e '/\.aux$$/d' \
--e '/\.bbl$$/d' \
--e '/\.ind$$/d' \
--e '/\.gls$$/d' \
--e '/\.nav$$/d' \
--e '/\.toc$$/d' \
--e '/\.mtc[0-9]*$$/d' \
--e '/\.lof$$/d' \
--e '/\.mlf[0-9]*$$/d' \
--e '/\.lot$$/d' \
--e '/\.mlt[0-9]*$$/d' \
--e '/\.out$$/d' \
--e 's/^.*$$/$2: &/' \
-$(TMPDIR)/$1.fls | sort | uniq >$(TMPDIR)/$1.deps
+if [ ! -f $(TMPDIR)/get-inputs.sed ]; then $(call make-get-inputs,$(TMPDIR)/get-inputs.sed); fi ; \
+$(SED) -f $(TMPDIR)/get-inputs.sed $(TMPDIR)/$1.fls | \
+$(SED) -e 's/^.*$$/$2: &/' | \
+sort | uniq >$(TMPDIR)/$1.deps
 endef
+
+define make-get-inputs
+echo '/^INPUT/!d' >$1 ; \
+echo 's!^INPUT !!' >>$1 ; \
+echo '/^\/.*$$/d' >>$1 ; \
+echo '/^[a-zA-Z]:/d' >>$1 ; \
+echo '/\.aux$$/d' >>$1 ; \
+echo '/\.bbl$$/d' >>$1 ; \
+echo '/\.ind$$/d' >>$1 ; \
+echo '/\.gls$$/d' >>$1 ; \
+echo '/\.nav$$/d' >>$1 ; \
+echo '/\.toc$$/d' >>$1 ; \
+echo '/\.mtc[0-9]*$$/d' >>$1 ; \
+echo '/\.lof$$/d' >>$1 ; \
+echo '/\.mlf[0-9]*$$/d' >>$1 ; \
+echo '/\.lot$$/d' >>$1 ; \
+echo '/\.mlt[0-9]*$$/d' >>$1 ; \
+echo '/\.out$$/d' >>$1
+endef
+
 
 # $(call update_file,<filename>)
 define update_file
@@ -276,25 +281,20 @@ $(call trim,$(TMPDIR)/$1.purge)
 endef
 
 
-# Colorizes real, honest-to-goodness LaTeX errors that can't be
-# overcome with recompilation.
-#
-# $(call colorize-latex-errors,<log file>)
-define colorize-latex-errors
-$(SED) \
--e '/^! LaTeX Error: File/d' \
--e '/^! LaTeX Error: Cannot determine size/d' \
--e '/[^ (]*\.tex/{s/[^ (]*\.tex/$(C_ERROR)&$(C_RESET)/g; p}' \
--e '/^! /,/^$$/{' \
--e '  H' \
--e '  /^$$/{' \
--e '    x' \
--e '    s/^.*$$/$(C_ERROR)&$(C_RESET)/' \
--e '    p' \
--e '  }' \
--e '}' \
--e 'd' \
-$1
+define make-flatten-aux
+echo '\
+/\\@input{\(.*\)}/{ ;\
+   s//\1/ ;\
+   h ;\
+   s!.*!\\:\\@input{&}:{! ;\
+   p ;\
+   x ;\
+   s/.*/r &/p ;\
+   s/.*/d/p ;\
+   s/.*/}/p ;\
+   d ;\
+} ;\
+d' >>$(TMPDIR)/flatten-aux.sed
 endef
 
 
@@ -303,20 +303,8 @@ endef
 #
 # $(call flatten-aux,<toplevel aux>,<output file>)
 define flatten-aux
-$(SED) \
--e '/\\@input{\(.*\)}/{' \
--e     's//\1/' \
--e     'h' \
--e     's!.*!\\:\\@input{&}:{!' \
--e     'p' \
--e     'x' \
--e     's/.*/r &/p' \
--e     's/.*/d/p' \
--e     's/.*/}/p' \
--e     'd' \
--e '}' \
--e 'd' \
-'$1' > "$(TMPDIR)/$1.$$$$.sed.make"; \
+if [ ! -f $(TMPDIR)/flatten-aux.sed ]; then touch $(TMPDIR)/flatten-aux.sed; $(call make-flatten-aux); fi; \
+$(SED) -f $(TMPDIR)/flatten-aux.sed '$1' > "$(TMPDIR)/$1.$$$$.sed.make"; \
 $(SED) -f "$(TMPDIR)/$1.$$$$.sed.make" '$1' > "$(TMPDIR)/$1.$$$$.make"; \
 $(SED) \
 -e '/^\\relax/d' \
@@ -340,65 +328,95 @@ endef
 
 
 # Colorize LaTeX output.
-color_tex	:= \
-	$(SED) -n \
-	-e '/^[[:space:]]*Output written/{' \
-	-e '  s/.*(\([^)]\{1,\}\)).*/Success!  Wrote \1/' \
-	-e '  s/[[:digit:]]\{1,\}/$(C_INFO)&$(C_RESET)/g' \
-	-e '  s/Success!/$(C_INFO)&$(C_RESET)/g' \
-	-e '  p' \
-	-e '}' \
-	-e '/[^ (]*\.tex[^(]*([^ (]*\.tex/{' \
-	-e '  s/.*(\([^ (]*\.tex\)\([^(]*\)\(([^ (]*\.tex\)/$(C_INFO)\1$(C_RESET)\n\3/' \
-	-e '  P' \
-	-e '  D' \
-	-e '}' \
-	-e '/[^ (]*\.tex/{' \
-	-e ' s/.*(\([^ (]*\.tex\)$$/$(C_INFO)\1$(C_RESET)\n/' \
-	-e ' s/.*(\([^ (]*\.tex\)[ )]/$(C_INFO)\1$(C_RESET)\n/' \
-	-e ' P' \
-	-e ' D' \
-	-e '}' \
-	-e 's/^! *LaTeX Error:.*/$(C_ERROR)&$(C_RESET)/' \
-	-e 't' \
-	-e 's/^LaTeX Warning:.*/$(C_WARNING)&$(C_RESET)/' \
-	-e 't' \
-	-e 's/^Underfull.*/$(C_WARNING)&$(C_RESET)/' \
-	-e 't' \
-	-e 's/^Overfull.*/$(C_WARNING)&$(C_RESET)/' \
-	-e 't' \
-	-e 's/^\#\#\#.*/$(C_WARNING)&$(C_RESET)/' \
-	-e 't' \
-	$(if $(VERBOSE),,-e 'd')
-
-# Colorize BibTeX output.
-color_bib	:= \
-	$(SED) \
-	-e 's/^Warning--.*/$(C_WARNING)&$(C_RESET)/' -e 't' \
-	-e '/---/,/^.[^:]/{' \
-	-e '  H' \
-	-e '  /^.[^:]/{' \
-	-e '    x' \
-	-e '    s/\n\(.*\)/$(C_ERROR)\1$(C_RESET)/' \
-	-e '	p' \
-	-e '    s/.*//' \
-	-e '    h' \
-	-e '    d' \
-	-e '  }' \
-	-e '  d' \
-	-e '}' \
-	-e '/(.*error.*)/s//$(C_ERROR)&$(C_RESET)/' \
-	$(if $(VERBOSE),,-e 'd')
-
+define make-color_tex
+echo '/^[[:space:]]*Output written/{\
+  s/.*(\([^)]\{1,\}\)).*/Success!  Wrote \1/ ;\
+  s/[[:digit:]]\{1,\}/$(C_INFO)&$(C_RESET)/g ;\
+  s/Success!/$(C_INFO)&$(C_RESET)/g ;\
+  p\
+} ;\
+/[^ (]*\.tex[^(]*([^ (]*\.tex/{\
+  s/.*(\([^ (]*\.tex\)\([^(]*\)\(([^ (]*\.tex\)/$(C_INFO)\1$(C_RESET)\n\3/ ;\
+  P ;\
+  D ;\
+} ;\
+/[^ (]*\.tex/{\
+ s/.*(\([^ (]*\.tex\)$$/$(C_INFO)\1$(C_RESET)\n/ ;\
+ s/.*(\([^ (]*\.tex\)[ )]/$(C_INFO)\1$(C_RESET)\n/ ;\
+ P ;\
+ D ;\
+}; \
+s/^! *LaTeX Error:.*/$(C_ERROR)&$(C_RESET)/; \
+t; \
+s/^LaTeX Warning:.*/$(C_WARNING)&$(C_RESET)/; \
+t ;\
+s/^Underfull.*/$(C_WARNING)&$(C_RESET)/; \
+t ;\
+s/^Overfull.*/$(C_WARNING)&$(C_RESET)/; \
+t ;\
+s/^\#\#\#.*/$(C_WARNING)&$(C_RESET)/ ;\
+t' >>$(TMPDIR)/color_tex.sed; \
+$(if $(VERBOSE),true,echo 'd' >>$(TMPDIR)/color_tex.sed)
+endef
 
 # $(call latex-color-log,<LaTeX stem>)
-latex-color-log	= $(color_tex) $1.log
+define latex-color-log
+if [ ! -f $(TMPDIR)/color_tex.sed ]; then touch $(TMPDIR)/color_tex.sed; $(call make-color_tex); fi; \
+$(SED) -n -f $(TMPDIR)/color_tex.sed $1.log
+endef
 
+define make-latex-errors
+echo '/^! LaTeX Error: File/d ;\
+/^! LaTeX Error: Cannot determine size/d ;\
+/[^ (]*\.tex/{s/[^ (]*\.tex/$(C_ERROR)&$(C_RESET)/g; p} ;\
+/^! /,/^$$/{ \
+  H ;\
+  /^$$/{ \
+    x ;\
+    s/^.*$$/$(C_ERROR)&$(C_RESET)/ ;\
+    p ;\
+  } ;\
+} ;\
+d' \
+>> $(TMPDIR)/latex-errors.sed
+endef
+
+
+# Colorizes real, honest-to-goodness LaTeX errors that can't be
+# overcome with recompilation.
+#
 # $(call latex-error-log,<LaTeX stem>)
-latex-error-log	= $(call colorize-latex-errors,$1.log)
+define latex-error-log
+if [ ! -f $(TMPDIR)/latex-errors.sed ]; then touch $(TMPDIR)/latex-errors.sed; $(call make-latex-errors); fi; \
+$(SED) -f $(TMPDIR)/latex-errors.sed $1.log
+endef
+
+# Colorize BibTeX output.
+define make-bibtex-color
+echo '\
+s/^Warning--.*/$(C_WARNING)&$(C_RESET)/ ;\
+t ;\
+/---/,/^.[^:]/{ \
+  H ;\
+  /^.[^:]/{ \
+    x ;\
+    s/\n\(.*\)/$(C_ERROR)\1$(C_RESET)/ ;\
+    p ;\
+    s/.*// ;\
+    h ;\
+    d ;\
+  } ;\
+  d ;\
+} ;\
+/(.*error.*)/s//$(C_ERROR)&$(C_RESET)/'>>$(TMPDIR)/bibtex-color.sed; \
+$(if $(VERBOSE),true,echo 'd' >>$(TMPDIR)/bibtex-color.sed)
+endef
 
 # $(call bibtex-color-log,<LaTeX stem>)
-bibtex-color-log	= $(color_bib) $1.blg
+define bibtex-color-log
+if [ ! -f $(TMPDIR)/bibtex-color.sed ]; then touch $(TMPDIR)/bibtex-color.sed; $(call make-bibtex-color); fi; \
+$(SED) -f $(TMPDIR)/bibtex-color.sed $1.blg
+endef
 
 # LaTeX invocations
 #
