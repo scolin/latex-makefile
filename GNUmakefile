@@ -11,7 +11,8 @@
 # Parts I added are licenced GPLv2 as well
 
 ifndef FILE
-  FILE=$(basename $(firstword $(shell grep -l documentclass *.tex)))
+  FILES=$(shell egrep -l '[^%]*\\documentclass' *.tex)
+  FILE=$(basename $(firstword $(FILES)))
   documentclass=$(shell grep documentclass $(FILE).tex)
 else
   documentclass=$(shell grep documentclass $(FILE).tex)
@@ -323,7 +324,6 @@ sed \
 rm -f $(TMPDIR)/$1.$$$$.{sed.,}make
 endef
 
-
 # Makes an aux file that only has stuff relevant to the bbl in it
 # $(call make-auxbbl-file,<aux file>,<new-aux>)
 # -e '/^\\bibcite/p' is useless, looks like
@@ -335,6 +335,7 @@ sed \
 -e 'd' \
 $1 | sort | uniq > $2
 endef
+
 
 # Colorize LaTeX output.
 color_tex	:= \
@@ -417,11 +418,13 @@ $(call update_purge_file,$1) ;\
 if [ "$$latexrunerror" -ne 0 ]; then rm -f $2; $(call latex-error-log,$1); exit 1; fi
 endef
 
-
 # BibTeX invocations
 #
 # $(call run-bibtex,<tex stem>)
-run-bibtex = $(BIBTEX) $1 $(TODEVNULL)
+define run-bibtex 
+echo Running BibTeX on $1; \
+$(BIBTEX) $1 $(TODEVNULL)
+endef
 
 # $(call test-run-again,<source stem>)
 test-run-again	= egrep -q '^(.*Rerun .*|No file $1\.[^.]+\.|No file [^ ]+\.bbl\.|LaTeX Warning: There were undefined references\.)$$' $(TMPDIR)/$1.log
