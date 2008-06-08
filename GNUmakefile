@@ -590,7 +590,7 @@ ifndef LATEXSTEP
 # when typing "make", at the moment forcing a rebuild is the safe bet,
 # dependency tracking in LaTeX being somewhat difficult with all the
 # packages that rely on/build intermediate files.
-%.pdf: FORCE
+$(FILE).pdf: FORCE
 	$(QUIET)$(call run-latex,$*,$@); \
 	$(call make-deps,$*); \
 	echo \#\#\#\#\#\# Was step: initial ; \
