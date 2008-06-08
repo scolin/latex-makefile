@@ -353,13 +353,16 @@ $(echo-texlog) '  s/Success!/$(C_INFO)&$(C_RESET)/g'; \
 $(echo-texlog) '  p'; \
 $(echo-texlog) '}'; \
 $(echo-texlog) '/[^ (]*\.tex[^(]*([^ (]*\.tex/{'; \
-$(echo-texlog) '  s/.*(\([^ (]*\.tex\)\([^(]*\)\(([^ (]*\.tex\)/$(C_INFO)\1$(C_RESET)\n\3/'; \
+$(echo-texlog) '  s/.*(\([^ (]*\.tex\)\([^(]*\)\(([^ (]*\.tex\)/$(C_INFO)\1$(C_RESET)\'; \
+$(echo-texlog) '\3/'; \
 $(echo-texlog) '  P'; \
 $(echo-texlog) '  D'; \
 $(echo-texlog) '}'; \
 $(echo-texlog) '/[^ (]*\.tex/{'; \
-$(echo-texlog) '  s/.*(\([^ (]*\.tex\)$$/$(C_INFO)\1$(C_RESET)\n/'; \
-$(echo-texlog) '  s/.*(\([^ (]*\.tex\)[ )]/$(C_INFO)\1$(C_RESET)\n/'; \
+$(echo-texlog) '  s/.*(\([^ (]*\.tex\)$$/$(C_INFO)\1$(C_RESET)\'; \
+$(echo-texlog) '/'; \
+$(echo-texlog) '  s/.*(\([^ (]*\.tex\)[ )]/$(C_INFO)\1$(C_RESET)\'; \
+$(echo-texlog) '/'; \
 $(echo-texlog) '  P'; \
 $(echo-texlog) '  D'; \
 $(echo-texlog) '}'; \
