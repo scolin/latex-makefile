@@ -340,36 +340,40 @@ $1 | sort | uniq > $2
 endef
 
 
+define echo-texlog
+echo >>$(TMPDIR)/color_tex.sed
+endef
+
 # Colorize LaTeX output.
 define make-color_tex
-echo '/^[[:space:]]*Output written/{\
-  s/.*(\([^)]\{1,\}\)).*/Success!  Wrote \1/ ;\
-  s/[[:digit:]]\{1,\}/$(C_INFO)&$(C_RESET)/g ;\
-  s/Success!/$(C_INFO)&$(C_RESET)/g ;\
-  p\
-} ;\
-/[^ (]*\.tex[^(]*([^ (]*\.tex/{\
-  s/.*(\([^ (]*\.tex\)\([^(]*\)\(([^ (]*\.tex\)/$(C_INFO)\1$(C_RESET)\n\3/ ;\
-  P ;\
-  D ;\
-} ;\
-/[^ (]*\.tex/{\
- s/.*(\([^ (]*\.tex\)$$/$(C_INFO)\1$(C_RESET)\n/ ;\
- s/.*(\([^ (]*\.tex\)[ )]/$(C_INFO)\1$(C_RESET)\n/ ;\
- P ;\
- D ;\
-}; \
-s/^! *LaTeX Error:.*/$(C_ERROR)&$(C_RESET)/; \
-t; \
-s/^LaTeX Warning:.*/$(C_WARNING)&$(C_RESET)/; \
-t ;\
-s/^Underfull.*/$(C_WARNING)&$(C_RESET)/; \
-t ;\
-s/^Overfull.*/$(C_WARNING)&$(C_RESET)/; \
-t ;\
-s/^\#\#\#.*/$(C_WARNING)&$(C_RESET)/ ;\
-t' >>$(TMPDIR)/color_tex.sed; \
-$(if $(VERBOSE),true,echo 'd' >>$(TMPDIR)/color_tex.sed)
+$(echo-texlog) '/^[[:space:]]*Output written/{'; \
+$(echo-texlog) '  s/.*(\([^)]\{1,\}\)).*/Success!  Wrote \1/'; \
+$(echo-texlog) '  s/[[:digit:]]\{1,\}/$(C_INFO)&$(C_RESET)/g'; \
+$(echo-texlog) '  s/Success!/$(C_INFO)&$(C_RESET)/g'; \
+$(echo-texlog) '  p'; \
+$(echo-texlog) '}'; \
+$(echo-texlog) '/[^ (]*\.tex[^(]*([^ (]*\.tex/{'; \
+$(echo-texlog) '  s/.*(\([^ (]*\.tex\)\([^(]*\)\(([^ (]*\.tex\)/$(C_INFO)\1$(C_RESET)\n\3/'; \
+$(echo-texlog) '  P'; \
+$(echo-texlog) '  D'; \
+$(echo-texlog) '}'; \
+$(echo-texlog) '/[^ (]*\.tex/{'; \
+$(echo-texlog) '  s/.*(\([^ (]*\.tex\)$$/$(C_INFO)\1$(C_RESET)\n/'; \
+$(echo-texlog) '  s/.*(\([^ (]*\.tex\)[ )]/$(C_INFO)\1$(C_RESET)\n/'; \
+$(echo-texlog) '  P'; \
+$(echo-texlog) '  D'; \
+$(echo-texlog) '}'; \
+$(echo-texlog) 's/^! *LaTeX Error:.*/$(C_ERROR)&$(C_RESET)/'; \
+$(echo-texlog) 't'; \
+$(echo-texlog) 's/^LaTeX Warning:.*/$(C_WARNING)&$(C_RESET)/'; \
+$(echo-texlog) 't'; \
+$(echo-texlog) 's/^Underfull.*/$(C_WARNING)&$(C_RESET)/'; \
+$(echo-texlog) 't'; \
+$(echo-texlog) 's/^Overfull.*/$(C_WARNING)&$(C_RESET)/'; \
+$(echo-texlog) 't'; \
+$(echo-texlog) 's/^\#\#\#.*/$(C_WARNING)&$(C_RESET)/'; \
+$(echo-texlog) 't'; \
+$(if $(VERBOSE),true,$(echo-texlog) 'd')
 endef
 
 # $(call latex-color-log,<LaTeX stem>)
