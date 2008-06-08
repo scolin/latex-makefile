@@ -138,10 +138,20 @@ LATEXPURGE+= $(MOREPURGE)
 # Utility Functions and Definitions
 #
 
-test-different		= ! diff -q '$1' '$2' &>/dev/null
+# test-different		= ! diff -q '$1' '$2' &>/dev/null
 
-replace-if-different-and-remove	= \
-	$(call test-different,$1,$2) && mv -f '$1' '$2' || rm -f '$1'
+# replace-if-different-and-remove	= \
+# 	$(call test-different,$1,$2) && mv -f '$1' '$2' || rm -f '$1'
+
+# $(call replace-if-different-and-remove,<source>,<target>)
+define replace-if-different-and-remove
+if [ ! -f "$1" ]; then echo "$1" should exist; exit 1; fi; \
+if [ ! -f "$2" ]; then mv -f "$1" "$2"; \
+else diff -q "$1" "$2" &>/dev/null; \
+     if [ $$? -ne 0 ]; then mv -f "$1" "$2"; \
+     else rm -f "$1"; fi ; \
+fi
+endef
 
 # Outputs all source dependencies to stdout.  The first argument is
 # the file to be parsed, the second is a list of files that will show
