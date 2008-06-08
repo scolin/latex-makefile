@@ -414,25 +414,28 @@ if [ ! -f $(TMPDIR)/latex-errors.sed ]; then touch $(TMPDIR)/latex-errors.sed; $
 $(SED) -f $(TMPDIR)/latex-errors.sed $1.log
 endef
 
+define echo-bibcol
+echo >>$(TMPDIR)/bibtex-color.sed
+endef
+
 # Colorize BibTeX output.
 define make-bibtex-color
-echo '\
-s/^Warning--.*/$(C_WARNING)&$(C_RESET)/ ;\
-t ;\
-/---/,/^.[^:]/{ \
-  H ;\
-  /^.[^:]/{ \
-    x ;\
-    s/\n\(.*\)/$(C_ERROR)\1$(C_RESET)/ ;\
-    p ;\
-    s/.*// ;\
-    h ;\
-    d ;\
-  } ;\
-  d ;\
-} ;\
-/(.*error.*)/s//$(C_ERROR)&$(C_RESET)/'>>$(TMPDIR)/bibtex-color.sed; \
-$(if $(VERBOSE),true,echo 'd' >>$(TMPDIR)/bibtex-color.sed)
+$(echo-bibcol) 's/^Warning--.*/$(C_WARNING)&$(C_RESET)/'; \
+$(echo-bibcol) 't'; \
+$(echo-bibcol) '/---/,/^.[^:]/{'; \
+$(echo-bibcol) '  H'; \
+$(echo-bibcol) '  /^.[^:]/{'; \
+$(echo-bibcol) '    x'; \
+$(echo-bibcol) '    s/\n\(.*\)/$(C_ERROR)\1$(C_RESET)/'; \
+$(echo-bibcol) '    p'; \
+$(echo-bibcol) '    s/.*//'; \
+$(echo-bibcol) '    h'; \
+$(echo-bibcol) '    d'; \
+$(echo-bibcol) '  }'; \
+$(echo-bibcol) '  d'; \
+$(echo-bibcol) '}'; \
+$(echo-bibcol) '/(.*error.*)/s//$(C_ERROR)&$(C_RESET)/'; \
+$(if $(VERBOSE),true,$(echo-bibcol) 'd')
 endef
 
 # $(call bibtex-color-log,<LaTeX stem>)
