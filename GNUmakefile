@@ -382,20 +382,26 @@ if [ ! -f $(TMPDIR)/color_tex.sed ]; then touch $(TMPDIR)/color_tex.sed; $(call 
 $(SED) -n -f $(TMPDIR)/color_tex.sed $1.log
 endef
 
+define echo-texerr
+echo >>$(TMPDIR)/latex-errors.sed
+endef
+
 define make-latex-errors
-echo '/^! LaTeX Error: File/d ;\
-/^! LaTeX Error: Cannot determine size/d ;\
-/[^ (]*\.tex/{s/[^ (]*\.tex/$(C_ERROR)&$(C_RESET)/g; p} ;\
-/^! /,/^$$/{ \
-  H ;\
-  /^$$/{ \
-    x ;\
-    s/^.*$$/$(C_ERROR)&$(C_RESET)/ ;\
-    p ;\
-  } ;\
-} ;\
-d' \
->> $(TMPDIR)/latex-errors.sed
+$(echo-texerr) '/^! LaTeX Error: File/d'; \
+$(echo-texerr) '/^! LaTeX Error: Cannot determine size/d'; \
+$(echo-texerr) '/[^ (]*\.tex/{'; \
+$(echo-texerr) '  s/[^ (]*\.tex/$(C_ERROR)&$(C_RESET)/g'; \
+$(echo-texerr) '  p'; \
+$(echo-texerr) '}'; \
+$(echo-texerr) '/^! /,/^$$/{'; \
+$(echo-texerr) '  H'; \
+$(echo-texerr) '  /^$$/{'; \
+$(echo-texerr) '    x'; \
+$(echo-texerr) '    s/^.*$$/$(C_ERROR)&$(C_RESET)/'; \
+$(echo-texerr) '    p'; \
+$(echo-texerr) '  }'; \
+$(echo-texerr) '}'; \
+$(echo-texerr) 'd'
 endef
 
 
