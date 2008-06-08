@@ -291,20 +291,23 @@ $(call trim,$(TMPDIR)/$1.purge)
 endef
 
 
+define echo-flataux
+echo >>$(TMPDIR)/flatten-aux.sed
+endef
+
 define make-flatten-aux
-echo '\
-/\\@input{\(.*\)}/{ ;\
-   s//\1/ ;\
-   h ;\
-   s!.*!\\:\\@input{&}:{! ;\
-   p ;\
-   x ;\
-   s/.*/r &/p ;\
-   s/.*/d/p ;\
-   s/.*/}/p ;\
-   d ;\
-} ;\
-d' >>$(TMPDIR)/flatten-aux.sed
+$(echo-flataux) '/\\@input{\(.*\)}/{'; \
+$(echo-flataux) '  s//\1/'; \
+$(echo-flataux) '  h'; \
+$(echo-flataux) '  s!.*!\\:\\@input{&}:{!'; \
+$(echo-flataux) '  p'; \
+$(echo-flataux) '  x'; \
+$(echo-flataux) '  s/.*/r &/p'; \
+$(echo-flataux) '  s/.*/d/p'; \
+$(echo-flataux) '  s/.*/}/p'; \
+$(echo-flataux) '  d'; \
+$(echo-flataux) '}'; \
+$(echo-flataux) 'd'
 endef
 
 
