@@ -147,7 +147,7 @@ LATEXPURGE+= $(MOREPURGE)
 define replace-if-different-and-remove
 if [ ! -f "$1" ]; then echo "$1" should exist; exit 1; fi; \
 if [ ! -f "$2" ]; then mv -f "$1" "$2"; \
-else diff -q "$1" "$2" &>/dev/null; \
+else diff -q "$1" "$2" $(TODEVNULL); \
      if [ $$? -ne 0 ]; then mv -f "$1" "$2"; \
      else rm -f "$1"; fi ; \
 fi
@@ -278,13 +278,13 @@ if [ "x$$indstems" != "x " ]; \
 then \
   echo $2: $$indstems >>$(TMPDIR)/$1.deps; \
   echo $$indstems >>$(TMPDIR)/$1.purge; \
-  echo $$indstems | $(SED) -e 's/\.ind\( \|$$\)/.ilg\1/g' >>$(TMPDIR)/$1.clean ;\
+  echo $$indstems | $(SED) -e 's/\.ind/.ilg/g' >>$(TMPDIR)/$1.clean ;\
 fi; \
 if [ "x$$glsstems" != "x " ]; \
 then \
   echo $2: $$glsstems >>$(TMPDIR)/$1.deps; \
   echo $$glsstems >>$(TMPDIR)/$1.purge; \
-  echo $$glsstems | $(SED) -e 's/\.gls\( \|$$\)/.glg\1/g' >>$(TMPDIR)/$1.clean ;\
+  echo $$glsstems | $(SED) -e 's/\.gls/.glg/g' >>$(TMPDIR)/$1.clean ;\
 fi ;\
 $(call trim,$(TMPDIR)/$1.clean) ;\
 $(call trim,$(TMPDIR)/$1.purge)
