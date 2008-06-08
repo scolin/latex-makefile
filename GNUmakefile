@@ -29,7 +29,10 @@ BIBFLAGS ?= -min-crossrefs=1
 # Unix utilities with particular parameters
 #SORT		:= LC_ALL=C sort
 SED		:= sed
+# Compatibility with FreeBSD
 CP		:= cp -RpP
+# Avoiding builtin echo
+ECHO		:= /bin/echo
 # == LaTeX (tetex-provided) ==
 # TODO: TeXlive now ?
 BIBTEX          := bibtex $(BIBFLAGS)
@@ -145,7 +148,7 @@ LATEXPURGE+= $(MOREPURGE)
 
 # $(call replace-if-different-and-remove,<source>,<target>)
 define replace-if-different-and-remove
-if [ ! -f "$1" ]; then echo "$1" should exist; exit 1; fi; \
+if [ ! -f "$1" ]; then $(ECHO) "$1" should exist; exit 1; fi; \
 if [ ! -f "$2" ]; then mv -f "$1" "$2"; \
 else diff -q "$1" "$2" $(TODEVNULL); \
      if [ $$? -ne 0 ]; then mv -f "$1" "$2"; \
@@ -169,22 +172,22 @@ sort | uniq >$(TMPDIR)/$1.deps
 endef
 
 define make-get-inputs
-echo '/^INPUT/!d' >$1 ; \
-echo 's!^INPUT !!' >>$1 ; \
-echo '/^\/.*$$/d' >>$1 ; \
-echo '/^[a-zA-Z]:/d' >>$1 ; \
-echo '/\.aux$$/d' >>$1 ; \
-echo '/\.bbl$$/d' >>$1 ; \
-echo '/\.ind$$/d' >>$1 ; \
-echo '/\.gls$$/d' >>$1 ; \
-echo '/\.nav$$/d' >>$1 ; \
-echo '/\.toc$$/d' >>$1 ; \
-echo '/\.mtc[0-9]*$$/d' >>$1 ; \
-echo '/\.lof$$/d' >>$1 ; \
-echo '/\.mlf[0-9]*$$/d' >>$1 ; \
-echo '/\.lot$$/d' >>$1 ; \
-echo '/\.mlt[0-9]*$$/d' >>$1 ; \
-echo '/\.out$$/d' >>$1
+$(ECHO) '/^INPUT/!d' >$1 ; \
+$(ECHO) 's!^INPUT !!' >>$1 ; \
+$(ECHO) '/^\/.*$$/d' >>$1 ; \
+$(ECHO) '/^[a-zA-Z]:/d' >>$1 ; \
+$(ECHO) '/\.aux$$/d' >>$1 ; \
+$(ECHO) '/\.bbl$$/d' >>$1 ; \
+$(ECHO) '/\.ind$$/d' >>$1 ; \
+$(ECHO) '/\.gls$$/d' >>$1 ; \
+$(ECHO) '/\.nav$$/d' >>$1 ; \
+$(ECHO) '/\.toc$$/d' >>$1 ; \
+$(ECHO) '/\.mtc[0-9]*$$/d' >>$1 ; \
+$(ECHO) '/\.lof$$/d' >>$1 ; \
+$(ECHO) '/\.mlf[0-9]*$$/d' >>$1 ; \
+$(ECHO) '/\.lot$$/d' >>$1 ; \
+$(ECHO) '/\.mlt[0-9]*$$/d' >>$1 ; \
+$(ECHO) '/\.out$$/d' >>$1
 endef
 
 
@@ -245,7 +248,7 @@ bblstems2=`$(SED) -e '/^INPUT.*\.bbl$$/!d' -e 's!^INPUT \(\./\)\{0,1\}\(.*\)\.bb
 bblstems="$$bblstems1 $$bblstems2"; \
 for i in $$bblstems; \
 do \
-  echo $2: $$i.bbl >>$(TMPDIR)/$1.deps; \
+  $(ECHO) $2: $$i.bbl >>$(TMPDIR)/$1.deps; \
   $(SED) \
   -e '/^\\bibdata/!d' \
   -e 's/\\bibdata{\([^}]*\)}/\1,/' \
@@ -255,10 +258,10 @@ do \
   $$i.aux | xargs $(KPSEWHICH) - | \
   $(SED) -e "s/^/$$i.bbl: /" | \
   sort | uniq >>$(TMPDIR)/$1.deps; \
-  echo $$i.aux >>$(TMPDIR)/$1.clean ;\
-  echo $$i.blg >>$(TMPDIR)/$1.clean ;\
-  echo $$i.bbl >>$(TMPDIR)/$1.purge ;\
-  echo $(TMPDIR)/$$i.auxbbl >>$(TMPDIR)/$1.purge ;\
+  $(ECHO) $$i.aux >>$(TMPDIR)/$1.clean ;\
+  $(ECHO) $$i.blg >>$(TMPDIR)/$1.clean ;\
+  $(ECHO) $$i.bbl >>$(TMPDIR)/$1.purge ;\
+  $(ECHO) $(TMPDIR)/$$i.auxbbl >>$(TMPDIR)/$1.purge ;\
 done; \
 $(call trim,$(TMPDIR)/$1.clean) ;\
 $(call trim,$(TMPDIR)/$1.purge)
@@ -276,15 +279,15 @@ indstems="$$indstems1 $$indstems2"; \
 glsstems="$$glsstems1 $$glsstems2"; \
 if [ "x$$indstems" != "x " ]; \
 then \
-  echo $2: $$indstems >>$(TMPDIR)/$1.deps; \
-  echo $$indstems >>$(TMPDIR)/$1.purge; \
-  echo $$indstems | $(SED) -e 's/\.ind/.ilg/g' >>$(TMPDIR)/$1.clean ;\
+  $(ECHO) $2: $$indstems >>$(TMPDIR)/$1.deps; \
+  $(ECHO) $$indstems >>$(TMPDIR)/$1.purge; \
+  $(ECHO) $$indstems | $(SED) -e 's/\.ind/.ilg/g' >>$(TMPDIR)/$1.clean ;\
 fi; \
 if [ "x$$glsstems" != "x " ]; \
 then \
-  echo $2: $$glsstems >>$(TMPDIR)/$1.deps; \
-  echo $$glsstems >>$(TMPDIR)/$1.purge; \
-  echo $$glsstems | $(SED) -e 's/\.gls/.glg/g' >>$(TMPDIR)/$1.clean ;\
+  $(ECHO) $2: $$glsstems >>$(TMPDIR)/$1.deps; \
+  $(ECHO) $$glsstems >>$(TMPDIR)/$1.purge; \
+  $(ECHO) $$glsstems | $(SED) -e 's/\.gls/.glg/g' >>$(TMPDIR)/$1.clean ;\
 fi ;\
 $(call trim,$(TMPDIR)/$1.clean) ;\
 $(call trim,$(TMPDIR)/$1.purge)
@@ -292,7 +295,7 @@ endef
 
 
 define echo-flataux
-echo >>$(TMPDIR)/flatten-aux.sed
+$(ECHO) >>$(TMPDIR)/flatten-aux.sed
 endef
 
 define make-flatten-aux
@@ -341,7 +344,7 @@ endef
 
 
 define echo-texlog
-echo >>$(TMPDIR)/color_tex.sed
+$(ECHO) >>$(TMPDIR)/color_tex.sed
 endef
 
 # Colorize LaTeX output.
@@ -386,7 +389,7 @@ $(SED) -n -f $(TMPDIR)/color_tex.sed $1.log
 endef
 
 define echo-texerr
-echo >>$(TMPDIR)/latex-errors.sed
+$(ECHO) >>$(TMPDIR)/latex-errors.sed
 endef
 
 define make-latex-errors
@@ -418,7 +421,7 @@ $(SED) -f $(TMPDIR)/latex-errors.sed $1.log
 endef
 
 define echo-bibcol
-echo >>$(TMPDIR)/bibtex-color.sed
+$(ECHO) >>$(TMPDIR)/bibtex-color.sed
 endef
 
 # Colorize BibTeX output.
@@ -451,7 +454,7 @@ endef
 #
 # $(call run-latex,<stem>,<expected extension>)
 define run-latex
-echo Running LaTeX; \
+$(ECHO) Running LaTeX; \
 $(LATEX) $1 $(TODEVNULL); \
 latexrunerror="$$?"; \
 if [ -r pdflatex.fls ]; \
@@ -471,7 +474,7 @@ endef
 #
 # $(call run-bibtex,<tex stem>)
 define run-bibtex 
-echo Running BibTeX on $1; \
+$(ECHO) Running BibTeX on $1; \
 $(BIBTEX) $1 $(TODEVNULL)
 endef
 
@@ -487,7 +490,7 @@ endef
 define possibly-rerun
 $(call test-run-again,$1); \
 if [ "$$?" -eq 0 ]; then rm -f $2; $(call rerun,$1,$2,$3); \
-else echo \*\*\* LaTeX warnings and errors below \*\*\* ; \
+else $(ECHO) \*\*\* LaTeX warnings and errors below \*\*\* ; \
 $(call latex-color-log,$1); \
 fi
 endef
@@ -593,7 +596,7 @@ ifndef LATEXSTEP
 $(FILE).pdf: FORCE
 	$(QUIET)$(call run-latex,$*,$@); \
 	$(call make-deps,$*); \
-	echo \#\#\#\#\#\# Was step: initial ; \
+	$(ECHO) \#\#\#\#\#\# Was step: initial ; \
 	$(call rerun,$*,$@,latex_init)
 
 endif
@@ -601,14 +604,14 @@ endif
 ifeq ($(LATEXSTEP),latex_init)
 # Index and glossaries should be done here
 %.ind: $(TMPDIR)/%.auxidx
-	$(QUIET)echo Running makeindex for $@; \
+	$(QUIET)$(ECHO) Running makeindex for $@; \
 	$(MAKEINDEX) $* ;\
-	echo $@ >>$(TMPDIR)/$(FILE).index-done
+	$(ECHO) $@ >>$(TMPDIR)/$(FILE).index-done
 
 %.gls: $(TMPDIR)/%.auxglo $(TMPDIR)/%.auxist
-	$(QUIET)echo Running makeindex for glossary $@; \
+	$(QUIET)$(ECHO) Running makeindex for glossary $@; \
 	$(MAKEINDEX) -t $*.glg -o $@ -s $*.ist $*.glo ; \
-	echo $@ >>$(TMPDIR)/$(FILE).index-done
+	$(ECHO) $@ >>$(TMPDIR)/$(FILE).index-done
 
 %.bbl: %.aux
 	$(QUIET)true
@@ -622,7 +625,7 @@ $(FILE).pdf: FORCE
 	  egrep '\\cite\>' `cat $(TMPDIR)/$(FILE).index-done` $(TODEVNULL); \
 	  if [ $$? -eq 0 ]; then $(call run-latex,$*,$@); fi; \
 	  rm $(TMPDIR)/$(FILE).index-done; \
-	  echo \#\#\#\#\#\# Was step: index, glossaries; \
+	  $(ECHO) \#\#\#\#\#\# Was step: index, glossaries; \
 	  $(call rerun,$(FILE),$@,latex_init); \
 	else \
 	  $(call rerun,$(FILE),$@,latex_index); \
@@ -644,7 +647,7 @@ $(FILE).pdf: FORCE
 	then \
 	  rm $(TMPDIR)/$(FILE).bib-done; \
 	  $(call run-latex,$(FILE),$@); \
-	  echo \#\#\#\#\#\# Was step: bibliography; \
+	  $(ECHO) \#\#\#\#\#\# Was step: bibliography; \
 	fi; \
 	$(call possibly-rerun,$(FILE),$@,latex_refs)
 
@@ -655,7 +658,7 @@ ifeq ($(LATEXSTEP),latex_refs)
 
 $(FILE).pdf: FORCE
 	$(QUIET)$(call run-latex,$(FILE),$@); \
-	echo \#\#\#\#\#\# Was step: cross-references; \
+	$(ECHO) \#\#\#\#\#\# Was step: cross-references; \
 	$(call possibly-rerun,$(FILE),$@,latex_links)
 
 
@@ -665,7 +668,7 @@ ifeq ($(LATEXSTEP),latex_links)
 
 $(FILE).pdf: FORCE
 	$(QUIET)$(call run-latex,$(FILE),$@); \
-	echo \#\#\#\#\#\# Was step: last chance to solve undefined references; \
+	$(ECHO) \#\#\#\#\#\# Was step: last chance to solve undefined references; \
 	$(call latex-color-log,$(FILE))
 
 endif
