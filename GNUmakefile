@@ -539,9 +539,9 @@ unsafe-purge: purge
 .SUFFIXES: .tex .dvi .ps .pdf .html .aux .deps .vars \
 .idx .ind .gls .glo .ist .bbl \
 .auxbbl .auxbbl.cookie \
-.auxglo .auxglo.cookie \
+.auxidx .auxidx.cookie \
 .auxist .auxist.cookie \
-.auxidx .auxidx.cookie
+.auxglo .auxglo.cookie
 
 $(TMPDIR)/$(FILE).aux.flat: $(FILE).aux
 	$(QUIET)$(call flatten-aux,$<,$@)
