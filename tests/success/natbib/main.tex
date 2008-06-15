@@ -1,0 +1,46 @@
+%-*- coding: iso-8859-1 -*-
+\documentclass[10pt]{article}
+
+\usepackage[latin1]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{pslatex}
+
+\usepackage{multibib}
+\newcites{CategOne}{\large One category of bibliography}
+\newcites{CategTwo}{\large Another category of bibliography}
+\newcites{CategThree}{\large One last category of bibliography}
+
+
+
+\title{Title}
+\author{Author}
+\date{\today}
+
+\begin{document}
+
+
+One citation \citeCategOne{test01} for the first category.
+
+One citation \citeCategTwo{test02} for the second category.
+
+One citation \citeCategThree{test04} for the third category.
+
+
+\bibliographyCategOne{../../common/bibliography/biblio1,../../common/bibliography/biblio2}
+\bibliographystyleCategOne{mbplain}
+
+\bibliographyCategTwo{../../common/bibliography/biblio1,../../common/bibliography/biblio2}
+\bibliographystyleCategTwo{mbplain}
+
+\bibliographyCategThree{../../common/bibliography/biblio1,../../common/bibliography/biblio2}
+\bibliographystyleCategThree{mbplain}
+
+\end{document}
+
+
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 

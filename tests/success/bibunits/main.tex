@@ -1,0 +1,55 @@
+%-*- coding: iso-8859-1 -*-
+\documentclass[10pt]{article}
+
+\usepackage[latin1]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{pslatex}
+
+\usepackage[subsectionbib,globalcitecopy]{bibunits}
+
+\title{Title}
+\author{Author}
+\date{\today}
+
+\begin{document}
+
+\bibliographyunit[\section]
+
+\defaultbibliographystyle{plain}
+\defaultbibliography{../../common/bibliography/biblio2}
+
+\maketitle
+
+\section{Section 1}
+\label{sec:section-1}
+
+One citation here \cite{test06}.
+
+\putbib
+
+
+\section{Section 2}
+\label{sec:section-2}
+
+
+Another citation here \cite{test04}.
+
+\putbib
+
+%%%
+
+\bibliographyunit
+\let\thebibliography\stdthebibliography
+
+\bibliographystyle{apalike}
+\bibliography{../../common/bibliography/biblio2}
+
+\end{document}
+
+
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 

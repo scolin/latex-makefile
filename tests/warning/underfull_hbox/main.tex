@@ -1,0 +1,37 @@
+%-*- coding: iso-8859-1 -*-
+\documentclass[10pt]{article}
+
+\usepackage[latin1]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{pslatex}
+
+\title{Title}
+\author{Author}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Section 1}
+\label{sec:section-1}
+
+\sloppy
+
+Here I am trying to make a just enough long line to first trigger an
+\verb+overfull hbox lessened+ by the sloppy command, so as to actually
+make an underfull.
+
+\section{Section 2}
+\label{sec:section-2}
+
+
+\end{document}
+
+
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 
