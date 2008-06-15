@@ -1,0 +1,55 @@
+%-*- coding: iso-8859-1 -*-
+\documentclass[10pt]{report}
+
+\usepackage[latin1]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{pslatex}
+
+\usepackage{makeidx}
+
+\title{Title}
+\author{Author}
+\date{\today}
+
+\makeindex
+
+
+\begin{document}
+
+\maketitle
+
+\chapter{Chapter 1}
+\label{sec:chapter-1}
+
+Here we speak about \LaTeX \index{latex@\LaTeX}
+
+\chapter{Chapter 2}
+\label{sec:chapter-2}
+
+Here we speak about Unicode with \LaTeX \index{latex@\LaTeX!unicode}
+
+\chapter{Chapter 3}
+\label{sec:chapter-3}
+
+Here we speak about special Unicode characters with \LaTeX
+\index{latex@\LaTeX!unicode!special}
+
+
+\chapter{Chapter 4}
+\label{sec:chapter-4}
+
+Here we speak about something completely different \index{something
+completely different}
+
+
+\printindex
+
+\end{document}
+
+
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 
