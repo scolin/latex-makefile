@@ -369,18 +369,26 @@ $(echo-texlog) '/'; \
 $(echo-texlog) '  P'; \
 $(echo-texlog) '  D'; \
 $(echo-texlog) '}'; \
-$(echo-texlog) 's/^! *LaTeX Error:.*/$(C_ERROR)&$(C_RESET)/'; \
+$(echo-texlog) 's/^! *LaTeX Error:.*/$(C_ERROR)&$(C_RESET)/p'; \
 $(echo-texlog) 't'; \
-$(echo-texlog) 's/^LaTeX Warning:.*/$(C_WARNING)&$(C_RESET)/'; \
-$(echo-texlog) 't'; \
-$(echo-texlog) 's/^Underfull.*/$(C_WARNING)&$(C_RESET)/'; \
-$(echo-texlog) 't'; \
-$(echo-texlog) 's/^Overfull.*/$(C_WARNING)&$(C_RESET)/'; \
-$(echo-texlog) 't'; \
-$(echo-texlog) 's/^\#\#\#.*/$(C_WARNING)&$(C_RESET)/'; \
-$(echo-texlog) 't'; \
+$(echo-texlog) '/^LaTeX Warning:.*/b warningloop'; \
+$(echo-texlog) '/^Underfull.*/b warningloop'; \
+$(echo-texlog) '/^Overfull.*/b warningloop'; \
+$(echo-texlog) '/^\#\#\#.*/b warningloop'; \
+$(echo-texlog) 'b end'; \
+$(echo-texlog) ''; \
+$(echo-texlog) ': warningloop'; \
+$(echo-texlog) '  N'; \
+$(echo-texlog) '  s/\(.*\n\)$$/&/'; \
+$(echo-texlog) '  t warningdone'; \
+$(echo-texlog) '  b warningloop'; \
+$(echo-texlog) ': warningdone'; \
+$(echo-texlog) '  s/.*/$(C_WARNING)&$(C_RESET)/p'; \
+$(echo-texlog) ''; \
+$(echo-texlog) ': end'; \
 $(if $(VERBOSE),true,$(echo-texlog) 'd')
 endef
+
 
 # $(call latex-color-log,<LaTeX stem>)
 define latex-color-log
