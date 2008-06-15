@@ -1,0 +1,55 @@
+%-*- coding: iso-8859-1 -*-
+\documentclass[10pt]{report}
+
+\usepackage[latin1]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{pslatex}
+
+\usepackage[toc=true,style=altlist,number=none]{glossary}
+\makeglossary
+
+\title{Title}
+\author{Author}
+\date{\today}
+
+\makeglossary
+
+
+\begin{document}
+
+\maketitle
+
+\input{glossary}
+
+\chapter{Chapter 1}
+\label{sec:chapter-1}
+
+Here we will speak about \gls{glos:latex}.
+
+
+\chapter{Chapter 2}
+\label{sec:chapter-2}
+
+Here we speak about \gls{glos:bibtex}.
+
+\chapter{Chapter 3}
+\label{sec:chapter-3}
+
+And here we speak about a \gls{glos:glossary}.
+
+
+\renewcommand{\glossaryname}{Glossary about stuff}
+\printglossary
+
+\bibliography{../../common/bibliography/biblio2}
+\bibliographystyle{apalike}
+
+\end{document}
+
+
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 
