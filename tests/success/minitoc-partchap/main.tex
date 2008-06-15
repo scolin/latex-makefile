@@ -1,0 +1,371 @@
+%-*- coding: iso-8859-1 -*-
+\documentclass[10pt]{book}
+
+\usepackage[latin1]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{pslatex}
+
+\usepackage{minitoc}
+
+\title{Title}
+\author{Author}
+\date{\today}
+
+
+
+\begin{document}
+
+\maketitle
+
+\doparttoc
+\dopartlot
+\dopartlof
+
+\dominitoc
+\dominilot
+\dominilof
+
+\tableofcontents
+\listoftables
+\listoffigures
+
+
+\part{Part 1}
+\label{part:part-1}
+\parttoc
+\partlot
+\partlof
+
+\chapter{Chapter 1}
+\label{cha:chapter-1}
+\minitoc
+\minilot
+\minilof
+
+\section{Section 1-1}
+\label{sec:section-1-1}
+
+
+\subsection{Subsection 1-1-1}
+\label{sec:subsection-1-1-1}
+
+\begin{figure}
+  \centering
+  This should be figure 1
+  \caption{Figure 1, I guess}
+  \label{fig:figure-1}
+\end{figure}
+
+
+\subsection{Subsection 1-1-2}
+\label{sec:subsection-1-1-2}
+
+\section{Section 1-2}
+\label{sec:section-1-2}
+
+\begin{figure}
+  \centering
+  This should be figure 2
+  \caption{Figure 2, I guess}
+  \label{fig:figure-2}
+\end{figure}
+
+\subsection{Subsection 1-2-1}
+\label{sec:subsection-1-2-1}
+
+\begin{table}
+  \centering
+  \begin{tabular}{l}
+    This should be table 1\\
+    With several lines...
+  \end{tabular}
+  \caption{Table 1, I suppose}
+  \label{tab:table-1}
+\end{table}
+
+\subsection{Subsection 1-2-2}
+\label{sec:subsection-1-2-2}
+
+\begin{table}
+  \centering
+  \begin{tabular}{l}
+    This should be table 2\\
+    With several lines...
+  \end{tabular}
+  \caption{Table 2, I suppose}
+  \label{tab:table-2}
+\end{table}
+
+\chapter{Chapter 2 after \ref{cha:chapter-1}}
+\label{cha:chapter-2}
+\minitoc
+\minilot
+\minilof
+
+\section{Section 2-1}
+\label{sec:section-2-1}
+
+I can reference figure \ref{fig:figure-1}.
+
+\subsection{Subsection 2-1-1}
+\label{sec:subsection-2-1-1}
+
+\begin{figure}
+  \centering
+  This should be figure 3
+  \caption{Figure 3, I guess}
+  \label{fig:figure-3}
+\end{figure}
+
+
+\subsection{Subsection 2-1-2}
+\label{sec:subsection-2-1-2}
+
+\section{Section 2-2}
+\label{sec:section-2-2}
+
+\subsection{Subsection 2-2-1}
+\label{sec:subsection-2-2-1}
+
+\begin{table}
+  \centering
+  \begin{tabular}{l}
+    This should be table 3\\
+    With several lines...
+  \end{tabular}
+  \caption{Table 3, I suppose}
+  \label{tab:table-3}
+\end{table}
+
+\begin{table}
+  \centering
+  \begin{tabular}{l}
+    This should be table 4\\
+    With several lines...
+  \end{tabular}
+  \caption{Table 4, I suppose}
+  \label{tab:table-4}
+\end{table}
+
+
+\subsection{Subsection 2-2-2}
+\label{sec:subsection-2-2-2}
+
+\begin{figure}
+  \centering
+  This should be figure 4
+  \caption{Figure 4, I guess}
+  \label{fig:figure-4}
+\end{figure}
+
+
+\part{Part 2 before \ref{part:part-3}}
+\label{part:part-2}
+\parttoc
+\partlot
+\partlof
+
+\chapter{Chapter 3}
+\label{cha:chapter-3}
+\minitoc
+\minilot
+\minilof
+
+
+\section{Section 3-1}
+\label{sec:section-3-1}
+
+
+\subsection{Subsection 3-1-1}
+\label{sec:subsection-3-1-1}
+
+\subsection{Subsection 3-1-2}
+\label{sec:subsection-3-1-2}
+
+\begin{figure}
+  \centering
+  This should be figure 5
+  \caption{Figure 5, I guess}
+  \label{fig:figure-5}
+\end{figure}
+
+
+\section{Section 3-2}
+\label{sec:section-3-2}
+
+\subsection{Subsection 3-2-1}
+\label{sec:subsection-3-2-1}
+
+\begin{table}
+  \centering
+  \begin{tabular}{l}
+    This should be table 5\\
+    With several lines...
+  \end{tabular}
+  \caption{Table 5, I suppose}
+  \label{tab:table-5}
+\end{table}
+
+
+\subsection{Subsection 3-2-2}
+\label{sec:subsection-3-2-2}
+
+
+\chapter{Chapter 4}
+\label{cha:chapter-4}
+\minitoc
+\minilot
+\minilof
+
+\section{Section 4-1}
+\label{sec:section-4-1}
+
+
+\subsection{Subsection 4-1-1}
+\label{sec:subsection-4-1-1}
+
+\begin{table}
+  \centering
+  \begin{tabular}{l}
+    This should be table 6\\
+    With several lines...
+  \end{tabular}
+  \caption{Table 6, I suppose}
+  \label{tab:table-6}
+\end{table}
+
+
+\subsection{Subsection 4-1-2}
+\label{sec:subsection-4-1-2}
+
+Good time for referencing figure~\ref{fig:figure-5}.
+
+\section{Section 4-2}
+\label{sec:section-4-2}
+
+\begin{figure}
+  \centering
+  This should be figure 6
+  \caption{Figure 6, I guess}
+  \label{fig:figure-6}
+\end{figure}
+
+
+
+\subsection{Subsection 4-2-1}
+\label{sec:subsection-4-2-1}
+
+Here I reference table~\ref{tab:table-8}.
+
+\subsection{Subsection 4-2-2}
+\label{sec:subsection-4-2-2}
+
+\appendix
+
+\part{Part 3}
+\label{part:part-3}
+\parttoc
+\partlot
+\partlof
+
+
+\chapter{Chapter 5}
+\label{cha:chapter-5}
+\minitoc
+\minilot
+\minilof
+
+\section{Section 5-1}
+\label{sec:section-5-1}
+
+
+\subsection{Subsection 5-1-1}
+\label{sec:subsection-5-1-1}
+
+\begin{figure}
+  \centering
+  This should be figure 7
+  \caption{Figure 7, I guess}
+  \label{fig:figure-7}
+\end{figure}
+
+
+
+\subsection{Subsection 5-1-2}
+\label{sec:subsection-5-1-2}
+
+\section{Section 5-2}
+\label{sec:section-5-2}
+
+
+\begin{table}
+  \centering
+  \begin{tabular}{l}
+    This should be table 7\\
+    With several lines...
+  \end{tabular}
+  \caption{Table 7, I suppose}
+  \label{tab:table-7}
+\end{table}
+
+\subsection{Subsection 5-2-1}
+\label{sec:subsection-5-2-1}
+
+\subsection{Subsection 5-2-2}
+\label{sec:subsection-5-2-2}
+
+
+\chapter{Chapter 6 very far from chapter \ref{cha:chapter-1}}
+\label{cha:chapter-6}
+\minitoc
+\minilot
+\minilof
+
+\section{Section 6-1}
+\label{sec:section-6-1}
+
+
+\subsection{Subsection 6-1-1 that looks like subsection \ref{sec:subsection-3-1-2}}
+\label{sec:subsection-6-1-1}
+
+\subsection{Subsection 6-1-2}
+\label{sec:subsection-6-1-2}
+
+\begin{table}
+  \centering
+  \begin{tabular}{l}
+    This should be table 8\\
+    With several lines...
+  \end{tabular}
+  \caption{Table 8, I suppose}
+  \label{tab:table-8}
+\end{table}
+
+
+\section{Section 6-2}
+\label{sec:section-6-2}
+
+\subsection{Subsection 6-2-1}
+\label{sec:subsection-6-2-1}
+
+\subsection{Subsection 6-2-2}
+\label{sec:subsection-6-2-2}
+
+\begin{figure}
+  \centering
+  This should be figure 8
+  \caption{Figure 8, I guess}
+  \label{fig:figure-8}
+\end{figure}
+
+
+
+\end{document}
+
+
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 
