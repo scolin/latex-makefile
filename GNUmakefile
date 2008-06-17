@@ -701,6 +701,7 @@ $(FILE).pdf: FORCE
 	  fi ; \
 	  $(ECHO) \#\#\#\#\#\# Either this document is a pathological case for cross-references, ; \
 	  $(ECHO) \#\#\#\#\#\# Or you use a badly-programmed crossrefs-wise style file ; \
+	  $(ECHO) \#\#\#\#\#\# Or simplier, there are undefined references; \
 	fi; \
 	$(call latex-color-log,$(FILE))
 
