@@ -369,14 +369,15 @@ $(echo-texlog) '  s/.*(\([^)]\{1,\}\)).*/Success!  Wrote \1/'; \
 $(echo-texlog) '  s/[[:digit:]]\{1,\}/$(C_INFO)&$(C_RESET)/g'; \
 $(echo-texlog) '  s/Success!/$(C_INFO)&$(C_RESET)/g'; \
 $(echo-texlog) '  p'; \
+$(echo-texlog) '  b end'; \
 $(echo-texlog) '}'; \
-$(echo-texlog) '/[^ (]*\.tex[^(]*([^ (]*\.tex/{'; \
+$(echo-texlog) '/([^ (]*\.tex[^(]*([^ (]*\.tex/{'; \
 $(echo-texlog) '  s/.*(\([^ (]*\.tex\)\([^(]*\)\(([^ (]*\.tex\)/$(C_INFO)\1$(C_RESET)\'; \
 $(echo-texlog) '\3/'; \
 $(echo-texlog) '  P'; \
 $(echo-texlog) '  D'; \
 $(echo-texlog) '}'; \
-$(echo-texlog) '/[^ (]*\.tex/{'; \
+$(echo-texlog) '/([^ (]*\.tex/{'; \
 $(echo-texlog) '  s/.*(\([^ (]*\.tex\)$$/$(C_INFO)\1$(C_RESET)\'; \
 $(echo-texlog) '/'; \
 $(echo-texlog) '  s/.*(\([^ (]*\.tex\)[ )]/$(C_INFO)\1$(C_RESET)\'; \
