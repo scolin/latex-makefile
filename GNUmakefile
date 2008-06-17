@@ -388,10 +388,14 @@ $(echo-texlog) '}'; \
 $(echo-texlog) 's/^! *LaTeX Error:.*/$(C_ERROR)&$(C_RESET)/p'; \
 $(echo-texlog) 't'; \
 $(echo-texlog) '/^LaTeX Warning:.*/b warningloop'; \
-$(echo-texlog) '/^Underfull.*/b warningloop'; \
-$(echo-texlog) '/^Overfull.*/b warningloop'; \
+$(echo-texlog) '/^Underfull.*/b hbox'; \
+$(echo-texlog) '/^Overfull.*/b hbox'; \
 $(echo-texlog) '/^\#\#\#.*/b warningloop'; \
 $(echo-texlog) 'b end'; \
+$(echo-texlog) ''; \
+$(echo-texlog) ': hbox'; \
+$(echo-texlog) '  s/.*/$(C_WARNING)&$(C_RESET)/p'; \
+$(echo-texlog) '  b end'; \
 $(echo-texlog) ''; \
 $(echo-texlog) ': warningloop'; \
 $(echo-texlog) '  N'; \
