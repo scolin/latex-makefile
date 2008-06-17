@@ -602,7 +602,8 @@ $(TMPDIR)/%.auxist: $(TMPDIR)/%.auxist.cookie
 	$(QUIET)$(call replace-if-different-and-remove,$<,$@)
 
 # LATEXSTEP tells us which step is _done_ (not about to be done)
-# Steps: latex_init, latex_index, latex_refs, latex_links => 5 steps
+# Steps: latex_init, latex_index, latex_refs, last step (compilation
+# loop for cross-refs)
 
 ifndef LATEXSTEP
 
@@ -680,22 +681,29 @@ endif
 ifeq ($(LATEXSTEP),latex_refs)
 
 $(FILE).pdf: FORCE
-	$(QUIET)$(call run-latex,$(FILE),$@); \
+	$(QUIET)cref_counter=0; \
+	run_again=1; \
+	while [ $$cref_counter -lt 4 -a $$run_again -eq 1 ]; \
+	do \
+	  $(call run-latex,$(FILE),$@); \
+	  $(call test-run-again,$(FILE)); \
+	  if [ "$$?" -ne 0 ]; then run_again=0; fi; \
+	  cref_counter=`expr $$cref_counter \+ 1`; \
+	done; \
 	$(ECHO) \#\#\#\#\#\# Was step: cross-references; \
-	$(call possibly-rerun,$(FILE),$@,latex_links)
-
-
-endif
-
-ifeq ($(LATEXSTEP),latex_links)
-
-$(FILE).pdf: FORCE
-	$(QUIET)$(call run-latex,$(FILE),$@); \
-	$(ECHO) \#\#\#\#\#\# Was step: last chance to solve undefined references; \
+	if [ $$cref_counter -gt 2 ]; \
+	then \
+	  $(ECHO) \#\#\#\#\#\# $$cref_counter compilations needed just for cross-references; \
+	  $(ECHO) \#\#\#\#\#\# This seems a lot... ; \
+	  if [ $$run_again -eq 1 ]; \
+	  then $(ECHO) \#\#\#\#\#\# Plus it seems to need to be run again ; \
+	  fi ; \
+	  $(ECHO) \#\#\#\#\#\# Either this document is a pathological case for cross-references, ; \
+	  $(ECHO) \#\#\#\#\#\# Or you use a badly-programmed crossrefs-wise style file ; \
+	fi; \
 	$(call latex-color-log,$(FILE))
 
 endif
-
 
 FORCE:
 
