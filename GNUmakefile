@@ -168,35 +168,40 @@ endef
 #
 # $(call get-inputs,<stem>,<target files>)
 define get-inputs
-if [ ! -f $(TMPDIR)/get-inputs.sed ]; then $(call make-get-inputs,$(TMPDIR)/get-inputs.sed); fi ; \
+if [ ! -f $(TMPDIR)/get-inputs.sed ]; then touch $(TMPDIR)/get-inputs.sed; $(call make-get-inputs); fi ; \
 $(SED) -f $(TMPDIR)/get-inputs.sed $(TMPDIR)/$1.fls | \
 $(SED) -e 's/^.*$$/$2: &/' | \
 sort | uniq >$(TMPDIR)/$1.deps
 endef
 
+define echo-get-inputs
+$(ECHO) >>$(TMPDIR)/get-inputs.sed
+endef
+
+
 define make-get-inputs
-$(ECHO) '/^INPUT/!d' >$1 ; \
-$(ECHO) 's!^INPUT !!' >>$1 ; \
-$(ECHO) '/^\/.*$$/d' >>$1 ; \
-$(ECHO) '/^[a-zA-Z]:/d' >>$1 ; \
-$(ECHO) '/\.aux$$/d' >>$1 ; \
-$(ECHO) '/\.bbl$$/d' >>$1 ; \
-$(ECHO) '/\.ind$$/d' >>$1 ; \
-$(ECHO) '/\.gls$$/d' >>$1 ; \
-$(ECHO) '/\.nav$$/d' >>$1 ; \
-$(ECHO) '/\.toc$$/d' >>$1 ; \
-$(ECHO) '/\.ptc[0-9]*$$/d' >>$1 ; \
-$(ECHO) '/\.mtc[0-9]*$$/d' >>$1 ; \
-$(ECHO) '/\.stc[0-9]*$$/d' >>$1 ; \
-$(ECHO) '/\.lof$$/d' >>$1 ; \
-$(ECHO) '/\.plf[0-9]*$$/d' >>$1 ; \
-$(ECHO) '/\.mlf[0-9]*$$/d' >>$1 ; \
-$(ECHO) '/\.slf[0-9]*$$/d' >>$1 ; \
-$(ECHO) '/\.lot$$/d' >>$1 ; \
-$(ECHO) '/\.plt[0-9]*$$/d' >>$1 ; \
-$(ECHO) '/\.mlt[0-9]*$$/d' >>$1 ; \
-$(ECHO) '/\.slt[0-9]*$$/d' >>$1 ; \
-$(ECHO) '/\.out$$/d' >>$1
+$(echo-get-inputs) '/^INPUT/!d' ; \
+$(echo-get-inputs) 's!^INPUT !!' ; \
+$(echo-get-inputs) '/^\/.*$$/d' ; \
+$(echo-get-inputs) '/^[a-zA-Z]:/d' ; \
+$(echo-get-inputs) '/\.aux$$/d' ; \
+$(echo-get-inputs) '/\.bbl$$/d' ; \
+$(echo-get-inputs) '/\.ind$$/d' ; \
+$(echo-get-inputs) '/\.gls$$/d' ; \
+$(echo-get-inputs) '/\.nav$$/d' ; \
+$(echo-get-inputs) '/\.toc$$/d' ; \
+$(echo-get-inputs) '/\.ptc[0-9]*$$/d' ; \
+$(echo-get-inputs) '/\.mtc[0-9]*$$/d' ; \
+$(echo-get-inputs) '/\.stc[0-9]*$$/d' ; \
+$(echo-get-inputs) '/\.lof$$/d' ; \
+$(echo-get-inputs) '/\.plf[0-9]*$$/d' ; \
+$(echo-get-inputs) '/\.mlf[0-9]*$$/d' ; \
+$(echo-get-inputs) '/\.slf[0-9]*$$/d' ; \
+$(echo-get-inputs) '/\.lot$$/d' ; \
+$(echo-get-inputs) '/\.plt[0-9]*$$/d' ; \
+$(echo-get-inputs) '/\.mlt[0-9]*$$/d' ; \
+$(echo-get-inputs) '/\.slt[0-9]*$$/d' ; \
+$(echo-get-inputs) '/\.out$$/d'
 endef
 
 
