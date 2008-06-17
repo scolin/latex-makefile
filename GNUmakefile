@@ -122,6 +122,7 @@ LATEXCLEAN+= $(FILE).toc $(FILE).lof $(FILE).lot
 LATEXCLEAN+= $(FILE).maf
 LATEXCLEAN+= $(FILE).ptc* $(FILE).plf* $(FILE).plt*
 LATEXCLEAN+= $(FILE).mtc* $(FILE).mlf* $(FILE).mlt*
+LATEXCLEAN+= $(FILE).stc* $(FILE).slf* $(FILE).slt*
 LATEXCLEAN+= $(FILE).nav $(FILE).snm  $(FILE).vrb 
 LATEXCLEAN+= *.aux *.blg
 LATEXCLEAN+= $(FILE).haux $(FILE).htoc
@@ -184,14 +185,17 @@ $(ECHO) '/\.ind$$/d' >>$1 ; \
 $(ECHO) '/\.gls$$/d' >>$1 ; \
 $(ECHO) '/\.nav$$/d' >>$1 ; \
 $(ECHO) '/\.toc$$/d' >>$1 ; \
-$(ECHO) '/\.mtc[0-9]*$$/d' >>$1 ; \
 $(ECHO) '/\.ptc[0-9]*$$/d' >>$1 ; \
+$(ECHO) '/\.mtc[0-9]*$$/d' >>$1 ; \
+$(ECHO) '/\.stc[0-9]*$$/d' >>$1 ; \
 $(ECHO) '/\.lof$$/d' >>$1 ; \
-$(ECHO) '/\.mlf[0-9]*$$/d' >>$1 ; \
 $(ECHO) '/\.plf[0-9]*$$/d' >>$1 ; \
+$(ECHO) '/\.mlf[0-9]*$$/d' >>$1 ; \
+$(ECHO) '/\.slf[0-9]*$$/d' >>$1 ; \
 $(ECHO) '/\.lot$$/d' >>$1 ; \
-$(ECHO) '/\.mlt[0-9]*$$/d' >>$1 ; \
 $(ECHO) '/\.plt[0-9]*$$/d' >>$1 ; \
+$(ECHO) '/\.mlt[0-9]*$$/d' >>$1 ; \
+$(ECHO) '/\.slt[0-9]*$$/d' >>$1 ; \
 $(ECHO) '/\.out$$/d' >>$1
 endef
 
@@ -205,7 +209,8 @@ endef
 
 # In purge : dvi,ps,pdf
 # In clean : maf,ilg,glg,blg,out,log
-#            lot,lof,toc,mlt*,mlf*,mtc*,nav
+#            lot,lof,toc,nav
+#            plt*,plf*,ptc*,mlt*,mlf*,mtc*,slt*,slf*,stc*,
 #            glo,gls,idx,ind,ist,aux
 
 # This function will get the generated files and add them to the
@@ -215,7 +220,7 @@ endef
 define update_clean_file
 egrep '^OUTPUT' $(TMPDIR)/$1.fls | \
 $(SED) -e 's/^OUTPUT //' | \
-egrep '\.maf$$|\.ilg$$|\.glg$$|\.blg$$|\.out$$|\.log$$|\.lot$$|\.lof$$|\.toc$$|\.plt[0-9]*$$|\.plf[0-9]*$$|\.ptc[0-9]*$$|\.mlt[0-9]*$$|\.mlf[0-9]*$$|\.mtc[0-9]*$$|\.nav$$|\.snm$$|\.glo$$|\.gls$$|\.idx$$|\.ind$$|\.ist$$|\.aux$$' \
+egrep '\.maf$$|\.ilg$$|\.glg$$|\.blg$$|\.out$$|\.log$$|\.lot$$|\.lof$$|\.toc$$|\.plt[0-9]*$$|\.plf[0-9]*$$|\.ptc[0-9]*$$|\.mlt[0-9]*$$|\.mlf[0-9]*$$|\.mtc[0-9]*$$|\.slt[0-9]*$$|\.slf[0-9]*$$|\.stc[0-9]*$$|\.nav$$|\.snm$$|\.glo$$|\.gls$$|\.idx$$|\.ind$$|\.ist$$|\.aux$$' \
  >$(TMPDIR)/$1.clean.cookie; \
 $(call update_file,$(TMPDIR)/$1.clean)
 endef
