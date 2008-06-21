@@ -13,15 +13,24 @@
 ifndef FILE
   FILES=$(shell egrep -l '[^%]*\\documentclass' *.tex)
   FILE=$(basename $(firstword $(FILES)))
-  documentclass=$(shell grep documentclass $(FILE).tex)
-else
-  documentclass=$(shell grep documentclass $(FILE).tex)
 endif
 
 TMPDIR=._d
 
+define find_dvi
+grep '^[%]\+[ \t]*scolin-latex[ \t]*:[ \t]*dvi[ \t]*$$' $(FILE).tex >/dev/null 2>&1
+endef
+
+EXT ?= $(shell $(find_dvi) && echo dvi || echo pdf)
+#EXT ?= pdf
+
+ifeq ($(EXT),pdf)
+  BARELATEX = pdflatex
+else
+  BARELATEX = latex
+endif
+
 HEVEAFLAGS ?= -fix
-BARELATEX ?= pdflatex
 BIBFLAGS ?= -min-crossrefs=1
 #VERBOSE := y
 
@@ -526,9 +535,9 @@ endef
 # Will create the stem.deps dependencies file
 # $(call make-deps,<stem>)
 define make-deps
-  $(call get-inputs,$1,$1.pdf); \
-  $(call get-bbl-deps,$1,$1.pdf); \
-  $(call make-inds-deps,$1,$1.pdf)
+  $(call get-inputs,$1,$1.$(EXT)); \
+  $(call get-bbl-deps,$1,$1.$(EXT)); \
+  $(call make-inds-deps,$1,$1.$(EXT))
 endef
 
 ############################################################################
@@ -540,7 +549,7 @@ endef
 
 .PHONY: all FORCE
 
-all: $(FILE).pdf
+all: $(FILE).$(EXT)
 
 # Include if we're not cleaning
 #ifeq "$(hascleangoals)" ""
@@ -622,7 +631,7 @@ ifndef LATEXSTEP
 # when typing "make", at the moment forcing a rebuild is the safe bet,
 # dependency tracking in LaTeX being somewhat difficult with all the
 # packages that rely on/build intermediate files.
-$(FILE).pdf: FORCE
+$(FILE).$(EXT): FORCE
 	$(QUIET)$(call run-latex,$*,$@); \
 	$(call make-deps,$*); \
 	$(ECHO) \#\#\#\#\#\# Was step: initial ; \
@@ -648,7 +657,7 @@ ifeq ($(LATEXSTEP),latex_init)
 # We loop here because page number for the glossary might change after
 # the compilation, hence we have to generate again the .gls
 
-$(FILE).pdf: FORCE
+$(FILE).$(EXT): FORCE
 	$(QUIET)if [ -f $(TMPDIR)/$(FILE).index-done ]; \
 	then \
 	  egrep '\\cite\>' `cat $(TMPDIR)/$(FILE).index-done` $(TODEVNULL); \
@@ -671,7 +680,7 @@ ifeq ($(LATEXSTEP),latex_index)
 	$(call bibtex-color-log,$*); \
 	touch $(TMPDIR)/$(FILE).bib-done
 
-$(FILE).pdf: FORCE
+$(FILE).$(EXT): FORCE
 	$(QUIET)if [ -f $(TMPDIR)/$(FILE).bib-done ]; \
 	then \
 	  rm $(TMPDIR)/$(FILE).bib-done; \
@@ -685,7 +694,7 @@ endif
 
 ifeq ($(LATEXSTEP),latex_refs)
 
-$(FILE).pdf: FORCE
+$(FILE).$(EXT): FORCE
 	$(QUIET)cref_counter=0; \
 	run_again=1; \
 	while [ $$cref_counter -lt 4 -a $$run_again -eq 1 ]; \
@@ -714,6 +723,6 @@ endif
 FORCE:
 
 
-%.html: %.pdf
+%.html: %.$(EXT)
 	$(HEVEA) $*.hva $*
 
