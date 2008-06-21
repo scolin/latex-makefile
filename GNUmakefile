@@ -10,19 +10,16 @@
 # 
 # Parts I added are licenced GPLv2 as well
 
-ifndef FILE
-  FILES=$(shell egrep -l '[^%]*\\documentclass' *.tex)
-  FILE=$(basename $(firstword $(FILES)))
-endif
-
 TMPDIR=._d
 
 define find_dvi
 grep '^[%]\+[ \t]*scolin-latex[ \t]*:[ \t]*dvi[ \t]*$$' $(FILE).tex >/dev/null 2>&1
 endef
 
+ifdef FILE
 EXT ?= $(shell $(find_dvi) && echo dvi || echo pdf)
 #EXT ?= pdf
+endif
 
 ifeq ($(EXT),pdf)
   BARELATEX = pdflatex
@@ -542,38 +539,84 @@ endef
 
 ############################################################################
 
-# Cancelling the dvi implicit rule
-%.dvi: %.tex
-
-.SECONDARY:
-
-.PHONY: all FORCE
-
-all: $(FILE).$(EXT)
-
 # Include if we're not cleaning
 #ifeq "$(hascleangoals)" ""
 -include $(TMPDIR)/$(FILE).deps
 #endif
 
-.PHONY: clean
+# Cancelling the dvi implicit rule
+%.dvi: %.tex
+
+.SECONDARY:
+
+.PHONY: all FORCE help clean purge unsafe-purge
+
+help:
+	$(help_text)
+
+
+ifndef FILE
+
+FILES=$(shell egrep -l '[^%]*\\documentclass' *.tex)
+
+all:
+	$(QUIET)for f in $(FILES); \
+	do \
+	  echo \#\#\#\#\#\# Now compiling `basename $$f .tex`; \
+	  $(MAKE) -s FILE=`basename $$f .tex` all; \
+	done
+
 clean:
-	$(QUIET)cat $(TMPDIR)/$(FILE).clean | xargs rm -f ;\
+	$(QUIET)for f in $(FILES); \
+	do \
+	  echo \#\#\#\#\#\# Now cleaning `basename $$f .tex`; \
+	  $(MAKE) -s FILE=`basename $$f .tex` clean; \
+	done
+
+purge:
+	$(QUIET)for f in $(FILES); \
+	do \
+	  echo \#\#\#\#\#\# Now purging `basename $$f .tex`; \
+	  $(MAKE) -s FILE=`basename $$f .tex` purge; \
+	done; \
+	rm -f $(TMPDIR)/*; rmdir --ignore-fail-on-non-empty $(TMPDIR)
+
+#TODO: ideally this last rm step should not be necessary
+
+unsafe-purge:
+	$(QUIET)for f in $(FILES); \
+	do \
+	  echo \#\#\#\#\#\# Now \(unsafely\) purging `basename $$f .tex`; \
+	  echo \#\#\#\#\#\# You know what you do and/or you have backups ; \
+	  $(MAKE) -s FILE=`basename $$f .tex` unsafe-purge; \
+	done
+
+else
+
+all: $(FILE).$(EXT)
+
+clean:
+	$(QUIET)if [ -f $(TMPDIR)/$(FILE).clean ]; \
+	then cat $(TMPDIR)/$(FILE).clean | xargs rm -f ; \
+	fi ; \
 	rm -rf $(MORECLEAN)
 
-.PHONY: purge
 purge: clean
-	$(QUIET)cat $(TMPDIR)/$(FILE).purge | xargs rm -f ;\
-	rm -rf $(TMPDIR) ;\
+	$(QUIET)if [ -f $(TMPDIR)/$(FILE).purge ]; \
+	then cat $(TMPDIR)/$(FILE).purge | xargs rm -f ;\
+	fi ; \
+	rmdir --ignore-fail-on-non-empty $(TMPDIR) ;\
 	rm -rf $(MOREPURGE)
 
 # This target has the potential of removing user files
 # (use with caution)
-.PHONY: unsafe-purge
 unsafe-purge: purge
 	$(QUIET)rm -f $(LATEXCLEAN) ;\
 	rm -f $(LATEXPURGE) ;\
 	rm -rf $(TMPDIR)
+
+endif
+
 
 .SUFFIXES: 
 .SUFFIXES: .tex .dvi .ps .pdf .html .aux .deps .vars \
@@ -726,3 +769,72 @@ FORCE:
 %.html: %.$(EXT)
 	$(HEVEA) $*.hva $*
 
+
+
+define help_text
+# This is a short usage description of this Makefile for LaTeX
+# It should work under the following OSes:
+# - Linux
+# - MacOSX
+# - Cygwin with LaTeX installed at the Windows level
+# - Cygwin with LateX installed inside it (untested)
+# - FreeBSD (with gmake)
+# This Makefile can be included (untested).
+#
+# TARGETS
+#
+# help:
+#   This help
+#
+# all:
+#   It will compile every compilable document in the directory where
+#   (g)make is launched, with automatic bibtex, index, glossaries
+#   generation and as many times as necessary to solve references.
+#   In a nutshell it will automatically do all for you.
+#   By default, compilation is made with pdflatex (hence it produces a
+#   pdf file), unless you put the following line into the main file
+#   (the file where you declare \documentclass{...}:
+#     % scolin-latex: dvi
+#   Then it will use latex rather than pdflatex.
+#   At the end of the compilation errors will be highlighted, in color
+#   if your terminal emulator supports it. If there was an error, it
+#   is stopped and will highlight errors as well.
+#
+# clean:
+#   It will remove log files, intermediate files, etc. It will not
+#   remove the compiled document (pdf or dvi), the generated
+#   bibliographies (bbl), the generated index or glossary files, the
+#   files in $(TMPDIR) needed for automation of the process
+#
+# purge:
+#   It will "clean" then remove the unremoved files mentioned in the
+#   clean target. This target should not remove important files.
+#
+# unsafe-purge:
+#   It "purge"s everything and then tries to remove more, such as some
+#   obscure intermediate files it had not found initially.
+#   WARNING: this target is especially aggressive, use it only if:
+#   - You have backups (or you have commited your work)
+#   - You know what you are doing
+#   And even then, this target might miss some useless files too
+#
+# <file>.html: (experimental)
+#   Attempts an HeVeA compilation of the document to produce an html
+#   file (HeVeA must be installed, of course)
+#
+# VARIABLES
+#   You can change the following variables to suit certain constraints
+#
+# TMPDIR: the directory where automation files are stored
+# MORECLEAN: mention additional files for the "clean" target
+# MOREPURGE: same as above, for the "purge" target.
+#   If "purge" or "clean" forgets some files you want to get rid of,
+#   you should use those variables
+#
+# BUGS
+#   - Many specific LaTeX packages not supported
+#   - Log analysis still too verbose in case of used system-wide TeX
+#   files (such as Tikz of the pgf suite)
+#   - ...
+# Report bugs at: <>
+endef
