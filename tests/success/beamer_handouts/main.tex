@@ -1,0 +1,127 @@
+\mode<presentation>
+{
+   \usetheme{Singapore}
+   \setbeamertemplate{navigation symbols}{}
+   \setbeamertemplate{items}[ball]
+   \setbeamertemplate{sections/subsections in toc}[ball]
+}
+
+\usepackage[english]{babel}
+\usepackage[utf8x]{inputenc}
+\usepackage[T1]{fontenc}
+
+\title % (optional, use only with long paper titles)
+{A title}
+\subtitle{with a subtitle}
+
+\author[Short author] % (optional, use only with lots of authors)
+{\underline{Long author}\inst{1}}
+%{\texorpdfstring{\underline{Long author}}{}\inst{1}}
+
+\institute[Institute]
+{
+  \inst{1}%
+  \begin{tabular}{l}
+    Institute\\
+    Somewhere\\
+    Email: \{firstname.lastname\}@localhost.localdomain
+  \end{tabular}
+}
+
+
+
+\date[Now]{LOL/WUT}
+
+%\subject{Theoretical Computer Science}
+
+% Delete this, if you do not want the table of contents to pop up at
+% the beginning of each subsection:
+\AtBeginSection[]
+{
+  \begin{frame}<beamer>
+    \frametitle{Outline}
+    \tableofcontents[currentsection,currentsubsection]
+  \end{frame}
+}
+
+% If you wish to uncover everything in a step-wise fashion, uncomment
+% the following command: 
+
+%\beamerdefaultoverlayspecification{<+->}
+
+\begin{document}
+
+
+\frame{\maketitle}
+
+\section{Section 1}
+\label{sec:section-1}
+
+A bibliographic reference \cite{test04}.
+
+\begin{frame}[label=testslide]
+  \frametitle{Frame title}
+  \framesubtitle{Frame subtitle}
+
+  Another bibliographic reference \cite{test06}.
+\end{frame}
+
+We can show a figure of the test slide in
+fig.~\ref{fig:test-slide}. The order does not matter that much.
+
+\begin{figure}
+  \centering
+  \includeslide[width=0.5\columnwidth]{testslide}
+  \caption{The test slide}
+  \label{fig:test-slide}
+\end{figure}
+
+\section{Section 2}
+\label{sec:section-2}
+
+There is a slide here but it won't be displayed, because I don't want
+to (but it might appear in a figure such as fig. \ref{fig:test-slide})
+
+\begin{frame}<presentation>
+  \frametitle{Nothing to see here}
+  \framesubtitle{Move along...}
+
+  \begin{itemize}
+  \item Actually
+  \item Some items
+    \begin{itemize}
+    \item Might be nice
+    \item To display
+      \begin{itemize}
+      \item By going
+      \item Deeper with a biblio ref \cite{test04}.
+      \end{itemize}
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\mode<presentation>{
+% All of the following is optional and typically not needed. 
+\appendix
+
+\section*{References}
+
+
+\begin{frame}[allowframebreaks,label=biblio]
+  \frametitle{References}
+    
+  \setbeamerfont{bibliography entry author}{size=\scriptsize}
+
+  \bibliographystyle{apalike}
+  \bibliography{../../common/bibliography/biblio2}
+\end{frame}
+}
+
+\mode<article>{
+  \bibliographystyle{apalike}
+  \bibliography{../../common/bibliography/biblio2}
+}
+
+\end{document}
+
+
