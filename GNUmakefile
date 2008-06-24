@@ -523,7 +523,7 @@ endef
 # $(call possibly-rerun,<source stem>,<produced dvi/ps/pdf file>,<step LaTeX compilation>)
 define possibly-rerun
 $(call test-run-again,$1); \
-if [ "$$?" -eq 0 ]; then rm -f $2; $(call rerun,$1,$2,$3); \
+if [ "$$?" -eq 0 ]; then $(call rerun,$1,$2,$3); \
 else $(ECHO) \*\*\* LaTeX warnings and errors below \*\*\* ; \
 $(call latex-color-log,$1); \
 fi
@@ -549,7 +549,11 @@ endef
 
 .SECONDARY:
 
-.PHONY: all FORCE help clean purge unsafe-purge
+.PHONY: default all FORCE help clean purge unsafe-purge
+
+default: all
+
+FORCE:
 
 help:
 	$(help_text)
@@ -762,8 +766,6 @@ $(FILE).$(EXT): FORCE
 	$(call latex-color-log,$(FILE))
 
 endif
-
-FORCE:
 
 
 %.html: %.$(EXT)
