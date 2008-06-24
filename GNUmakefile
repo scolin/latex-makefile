@@ -12,6 +12,14 @@
 
 TMPDIR=._d
 
+ifdef FILE
+export FILE
+endif
+
+ifdef EXT
+export EXT
+endif
+
 define find_dvi
 grep '^[%]\+[ \t]*scolin-latex[ \t]*:[ \t]*dvi[ \t]*$$' $(FILE).tex >/dev/null 2>&1
 endef
@@ -518,13 +526,13 @@ test-run-again	= egrep -q '^(.*Rerun .*|No file $1\.[^.]+\.|No file [^ ]+\.bbl\.
 
 # $(call rerun,<source stem>,<produced dvi/ps/pdf file>,<step LaTeX compilation>)
 define rerun
-$(MAKE) -s LATEXSTEP=$3 FILE=$1 $2
+$(MAKE) -s LATEXSTEP=$1
 endef
 
-# $(call possibly-rerun,<source stem>,<produced dvi/ps/pdf file>,<step LaTeX compilation>)
+# $(call possibly-rerun,<source stem>,<step LaTeX compilation>)
 define possibly-rerun
 $(call test-run-again,$1); \
-if [ "$$?" -eq 0 ]; then $(call rerun,$1,$2,$3); \
+if [ "$$?" -eq 0 ]; then $(call rerun,$2); \
 else $(call latex-color-log,$1); \
 fi
 endef
@@ -682,7 +690,7 @@ $(FILE).$(EXT): FORCE
 	$(QUIET)$(call run-latex,$*,$@); \
 	$(call make-deps,$*); \
 	$(ECHO) \#\#\#\#\#\# Was step: initial ; \
-	$(call rerun,$*,$@,latex_init)
+	$(call rerun,latex_init)
 
 endif
 
@@ -711,9 +719,9 @@ $(FILE).$(EXT): FORCE
 	  if [ $$? -eq 0 ]; then $(call run-latex,$*,$@); fi; \
 	  rm $(TMPDIR)/$(FILE).index-done; \
 	  $(ECHO) \#\#\#\#\#\# Was step: index, glossaries; \
-	  $(call rerun,$(FILE),$@,latex_init); \
+	  $(call rerun,latex_init); \
 	else \
-	  $(call rerun,$(FILE),$@,latex_index); \
+	  $(call rerun,latex_index); \
 	fi; 
 
 endif
@@ -734,7 +742,7 @@ $(FILE).$(EXT): FORCE
 	  $(call run-latex,$(FILE),$@); \
 	  $(ECHO) \#\#\#\#\#\# Was step: bibliography; \
 	fi; \
-	$(call possibly-rerun,$(FILE),$@,latex_refs)
+	$(call possibly-rerun,$(FILE),latex_refs)
 
 
 endif
