@@ -419,6 +419,7 @@ endef
 # $(call latex-color-log,<LaTeX stem>)
 define latex-color-log
 if [ ! -f $(TMPDIR)/color_tex.sed ]; then touch $(TMPDIR)/color_tex.sed; $(call make-color_tex); fi; \
+$(ECHO) \*\*\* LaTeX warnings and errors below \*\*\* ; \
 $(SED) -n -f $(TMPDIR)/color_tex.sed $1.log
 endef
 
@@ -524,8 +525,7 @@ endef
 define possibly-rerun
 $(call test-run-again,$1); \
 if [ "$$?" -eq 0 ]; then $(call rerun,$1,$2,$3); \
-else $(ECHO) \*\*\* LaTeX warnings and errors below \*\*\* ; \
-$(call latex-color-log,$1); \
+else $(call latex-color-log,$1); \
 fi
 endef
 
