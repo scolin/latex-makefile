@@ -296,6 +296,7 @@ $(call trim,$(TMPDIR)/$1.clean) ;\
 $(call trim,$(TMPDIR)/$1.purge)
 endef
 
+
 # Compute index and glossary dependencies
 # $(call make-inds-deps,<stem>,<targets>)
 #
@@ -319,6 +320,25 @@ then \
   $(ECHO) $$glsstems | $(SED) -e 's/\.gls/.glg/g' >>$(TMPDIR)/$1.clean ;\
 fi ;\
 $(call trim,$(TMPDIR)/$1.clean) ;\
+$(call trim,$(TMPDIR)/$1.purge)
+endef
+
+
+# Compute other dependencies:
+# - thumbpdf thumbnail file
+# $(call get-misc-deps,<stem>,<targets>)
+#
+define get-misc-deps
+miscstems1=`$(SED) \
+-e '/^Package thumbpdf Warning: Thumbnail data file .$1\.tp\(.\). not found.$$/!d' \
+-e 's/^Package thumbpdf Warning: Thumbnail data file .$1\.tp\(.\). not found.$$/$1.tp\1/g' $(TMPDIR)/$1.log \
+| sort | uniq`; \
+miscstems="$$miscstems1"; \
+if [ "x$$miscstems" != "x" ]; \
+then \
+  $(ECHO) $2: $$miscstems >>$(TMPDIR)/$1.deps; \
+  $(ECHO) $$miscstems >>$(TMPDIR)/$1.purge; \
+fi; \
 $(call trim,$(TMPDIR)/$1.purge)
 endef
 
@@ -522,19 +542,13 @@ $(BIBTEX) $1 $(TODEVNULL)
 endef
 
 # $(call test-run-again,<source stem>)
-test-run-again	= egrep -q '^(.*Rerun .*|No file $1\.[^.]+\.|No file [^ ]+\.bbl\.|LaTeX Warning: There were undefined references\.)$$' $(TMPDIR)/$1.log
-
-# $(call rerun,<source stem>,<produced dvi/ps/pdf file>,<step LaTeX compilation>)
-define rerun
-$(MAKE) -s LATEXSTEP=$1
+define test-run-again
+egrep -q '^(.*Rerun .*|No file $1\.[^.]+\.|No file [^ ]+\.bbl\.|LaTeX Warning: There were undefined references\.)$$' $(TMPDIR)/$1.log
 endef
 
-# $(call possibly-rerun,<source stem>,<step LaTeX compilation>)
-define possibly-rerun
-$(call test-run-again,$1); \
-if [ "$$?" -eq 0 ]; then $(call rerun,$2); \
-else $(call latex-color-log,$1); \
-fi
+# $(call test-postproc,<source stem>)
+define test-postproc
+egrep -q '^Package thumbpdf Warning: Thumbnail data file .$1\.tpt. not found.$$' $(TMPDIR)/$1.log
 endef
 
 # Will create the stem.deps dependencies file
@@ -542,7 +556,8 @@ endef
 define make-deps
   $(call get-inputs,$1,$1.$(EXT)); \
   $(call get-bbl-deps,$1,$1.$(EXT)); \
-  $(call make-inds-deps,$1,$1.$(EXT))
+  $(call make-inds-deps,$1,$1.$(EXT)); \
+  $(call get-misc-deps,$1,$1.$(EXT))
 endef
 
 ############################################################################
@@ -670,17 +685,15 @@ $(TMPDIR)/%.auxglo: $(TMPDIR)/%.auxglo.cookie
 $(TMPDIR)/%.auxist: $(TMPDIR)/%.auxist.cookie
 	$(QUIET)$(call replace-if-different-and-remove,$<,$@)
 
-# LATEXSTEP tells us which step is _done_ (not about to be done)
-# Steps: latex_init, latex_index, latex_refs, last step (compilation
-# loop for cross-refs)
+# Steps: the initial one, latex_index, latex_bib, latex_refs, last
+# step (compilation loop for cross-refs)
 
 ifndef LATEXSTEP
 
 %.bbl: %.aux
 	$(QUIET)true
 
-# We need to build the .deps only at the first step
-# SC: not exactly...
+# TODO: the .deps & all might need an update after some steps
 
 # We force the re-generation : the user expects something to happen
 # when typing "make", at the moment forcing a rebuild is the safe bet,
@@ -690,11 +703,12 @@ $(FILE).$(EXT): FORCE
 	$(QUIET)$(call run-latex,$*,$@); \
 	$(call make-deps,$*); \
 	$(ECHO) \#\#\#\#\#\# Was step: initial ; \
-	$(call rerun,latex_init)
+	$(MAKE) -s LATEXSTEP=latex_index
 
 endif
 
-ifeq ($(LATEXSTEP),latex_init)
+
+ifeq ($(LATEXSTEP),latex_index)
 # Index and glossaries should be done here
 %.ind: $(TMPDIR)/%.auxidx
 	$(QUIET)$(ECHO) Running makeindex for $@; \
@@ -719,14 +733,15 @@ $(FILE).$(EXT): FORCE
 	  if [ $$? -eq 0 ]; then $(call run-latex,$*,$@); fi; \
 	  rm $(TMPDIR)/$(FILE).index-done; \
 	  $(ECHO) \#\#\#\#\#\# Was step: index, glossaries; \
-	  $(call rerun,latex_init); \
+	  $(MAKE) -s LATEXSTEP=latex_index; \
 	else \
-	  $(call rerun,latex_index); \
+	  $(MAKE) -s LATEXSTEP=latex_bib; \
 	fi; 
 
 endif
 
-ifeq ($(LATEXSTEP),latex_index)
+
+ifeq ($(LATEXSTEP),latex_bib)
 
 # Bibtex should be done here
 %.bbl: $(TMPDIR)/%.auxbbl
@@ -742,10 +757,13 @@ $(FILE).$(EXT): FORCE
 	  $(call run-latex,$(FILE),$@); \
 	  $(ECHO) \#\#\#\#\#\# Was step: bibliography; \
 	fi; \
-	$(call possibly-rerun,$(FILE),latex_refs)
-
+	$(call test-run-again,$(FILE)); \
+	if [ "$$?" -eq 0 ]; then $(MAKE) -s LATEXSTEP=latex_refs; \
+	else $(call latex-color-log,$(FILE)); \
+	fi
 
 endif
+
 
 ifeq ($(LATEXSTEP),latex_refs)
 
@@ -771,7 +789,29 @@ $(FILE).$(EXT): FORCE
 	  $(ECHO) \#\#\#\#\#\# Or you use a badly-programmed crossrefs-wise style file ; \
 	  $(ECHO) \#\#\#\#\#\# Or simplier, there are undefined references; \
 	fi; \
+	$(call test-postproc,$(FILE)); \
+	if [ "$$?" -eq 0 ]; then $(MAKE) -s LATEXSTEP=latex_postproc; \
+	else $(call latex-color-log,$(FILE)); \
+	fi
+
+endif
+
+
+ifeq ($(LATEXSTEP),latex_postproc)
+
+%.tpt %.tpm:
+	$(QUIET)$(ECHO) Running thumbpdf for $*; \
+	thumbpdf $* $(TODEVNULL)
+
+$(FILE).$(EXT): FORCE
+	$(QUIET)$(call run-latex,$*,$@); \
+	$(ECHO) \#\#\#\#\#\# Was step: post-processing ; \
 	$(call latex-color-log,$(FILE))
+else
+
+# Activate thumbpdf only at latex_postproc step
+%.tpt %.tpm:
+	$(QUIET)true
 
 endif
 
