@@ -3,10 +3,10 @@
 # Copyright 2004 Chris Monson (monpublic@gmail.com)
 
 # This file is based on Chris Monson's Makefile:
-# http://www.bouncingchairs.net/oss
-# As such, parts derived directly from it are licenced under the 
-# GPLv2 (http://www.gnu.org/copyleft/gpl.html)
-# under the following terms, copied verbatim from the original Makefile
+# http://www.bouncingchairs.net/oss As such, parts derived directly
+# from it are licenced under the GPLv2
+# (http://www.gnu.org/copyleft/gpl.html) under the following terms,
+# copied verbatim from the original Makefile
 # 
 # Parts I added are licenced GPLv2 as well
 
@@ -590,7 +590,7 @@ all:
 	$(QUIET)for f in $(FILES); \
 	do \
 	  echo \#\#\#\#\#\# Now compiling `basename $$f .tex`; \
-	  $(MAKE) -s FILE=`basename $$f .tex` all; \
+	  $(MAKE) -s LATEXSTEP=latex_init FILE=`basename $$f .tex` all; \
 	done
 
 clean:
@@ -685,10 +685,10 @@ $(TMPDIR)/%.auxglo: $(TMPDIR)/%.auxglo.cookie
 $(TMPDIR)/%.auxist: $(TMPDIR)/%.auxist.cookie
 	$(QUIET)$(call replace-if-different-and-remove,$<,$@)
 
-# Steps: the initial one, latex_index, latex_bib, latex_refs, last
-# step (compilation loop for cross-refs)
+# Steps: latex_init, latex_index, latex_bib, latex_refs*,
+# latex_postproc
 
-ifndef LATEXSTEP
+ifeq ($(LATEXSTEP),latex_init)
 
 %.bbl: %.aux
 	$(QUIET)true
