@@ -16,24 +16,24 @@ ifdef FILE
 export FILE
 endif
 
-ifdef EXT
-export EXT
-endif
+# ifdef EXT
+# export EXT
+# endif
 
-define find_dvi
-grep '^[%]\+[ \t]*scolin-latex[ \t]*:[ \t]*dvi[ \t]*$$' $(FILE).tex >/dev/null 2>&1
-endef
+# define find_dvi
+# grep '^[%]\+[ \t]*scolin-latex[ \t]*:[ \t]*dvi[ \t]*$$' $(FILE).tex >/dev/null 2>&1
+# endef
 
-ifdef FILE
-EXT ?= $(shell $(find_dvi) && echo dvi || echo pdf)
-#EXT ?= pdf
-endif
+# ifdef FILE
+# EXT ?= $(shell $(find_dvi) && echo dvi || echo pdf)
+# #EXT ?= pdf
+# endif
 
-ifeq ($(EXT),pdf)
-  BARELATEX = pdflatex
-else
-  BARELATEX = latex
-endif
+# ifeq ($(EXT),pdf)
+#   BARELATEX = pdflatex
+# else
+#   BARELATEX = latex
+# endif
 
 HEVEAFLAGS ?= -fix
 BIBFLAGS ?= -min-crossrefs=1
@@ -41,34 +41,34 @@ BIBFLAGS ?= -min-crossrefs=1
 
 # PROGRAMS:
 # Unix utilities with particular parameters
-#SORT		:= LC_ALL=C sort
-SED		:= sed
+#SORT		= LC_ALL=C sort
+SED		= sed
 # Compatibility with FreeBSD
-CP		:= cp -RpP
+CP		= cp -RpP
 # Avoiding builtin echo
-ECHO		:= /bin/echo
+ECHO		= /bin/echo
 # == LaTeX (tetex-provided) ==
 # TODO: TeXlive now ?
-BIBTEX          := bibtex $(BIBFLAGS)
-DVIPS		:= dvips
-LATEX		:= $(BARELATEX) -recorder -interaction=nonstopmode $(TEXFLAGS)
-KPSEWHICH	:= kpsewhich
-PS2PDF_NORMAL	:= ps2pdf
-PS2PDF_EMBED	:= ps2pdf13
-HEVEA           := hevea $(HEVEAFLAGS)
-MAKEINDEX       := makeindex -q
+BIBTEX          = bibtex $(BIBFLAGS)
+DVIPS		= dvips
+LATEX		= $(BARELATEX) -recorder -interaction=nonstopmode
+KPSEWHICH	= kpsewhich
+PS2PDF_NORMAL	= ps2pdf
+PS2PDF_EMBED	= ps2pdf13
+HEVEA           = hevea $(HEVEAFLAGS)
+MAKEINDEX       = makeindex -q
 # Glosstex, also ?
 # = OPTIONAL PROGRAMS =
 # == Makefile Color Output ==
-TPUT		:= tput
+TPUT		= tput
 
 # Characters that are hard to specify in certain places
-space		:= $(empty) $(empty)
+space		= $(empty) $(empty)
 
 # Turn command echoing back on with VERBOSE=something
 ifndef VERBOSE
-QUIET	:= @
-TODEVNULL := > /dev/null
+QUIET	= @
+TODEVNULL = > /dev/null
 else
 SHELL	+= -x
 endif
@@ -77,9 +77,9 @@ endif
 # 3.79) This is only really used for documentation, so it isn't too
 # serious.
 ifdef MAKEFILE_LIST
-this_file	:= $(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST))
+this_file	= $(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST))
 else
-this_file	:= $(wildcard GNUmakefile makefile Makefile)
+this_file	= $(wildcard GNUmakefile makefile Makefile)
 endif
 
 # Terminal color definitions
@@ -552,12 +552,12 @@ egrep -q '^Package thumbpdf Warning: Thumbnail data file .$1\.tpt. not found.$$'
 endef
 
 # Will create the stem.deps dependencies file
-# $(call make-deps,<stem>)
+# $(call make-deps,<stem>,<target file>)
 define make-deps
-  $(call get-inputs,$1,$1.$(EXT)); \
-  $(call get-bbl-deps,$1,$1.$(EXT)); \
-  $(call make-inds-deps,$1,$1.$(EXT)); \
-  $(call get-misc-deps,$1,$1.$(EXT))
+  $(call get-inputs,$1,$2); \
+  $(call get-bbl-deps,$1,$2); \
+  $(call make-inds-deps,$1,$2); \
+  $(call get-misc-deps,$1,$2)
 endef
 
 ############################################################################
@@ -589,8 +589,11 @@ FILES=$(shell egrep -l '[^%]*\\documentclass' *.tex)
 all:
 	$(QUIET)for f in $(FILES); \
 	do \
-	  echo \#\#\#\#\#\# Now compiling `basename $$f .tex`; \
-	  $(MAKE) -s LATEXSTEP=latex_init FILE=`basename $$f .tex` all; \
+	  fname=`basename $$f .tex`; \
+	  grep '^[%]\+[ \t]*scolin-latex[ \t]*:[ \t]*dvi[ \t]*$$' $$fname.tex  $(TODEVNULL) ; \
+	  if [ "$$?" -eq 0 ]; then fext=dvi; else fext=pdf; fi; \
+	  echo \#\#\#\#\#\# Now compiling $$fname; \
+	  $(MAKE) -s LATEXSTEP=latex_init FILE=$$fname $$fname.$$fext; \
 	done
 
 clean:
@@ -620,7 +623,7 @@ unsafe-purge:
 
 else
 
-all: $(FILE).$(EXT)
+all: $(FILE).correctme
 
 clean:
 	$(QUIET)if [ -f $(TMPDIR)/$(FILE).clean ]; \
@@ -685,6 +688,11 @@ $(TMPDIR)/%.auxglo: $(TMPDIR)/%.auxglo.cookie
 $(TMPDIR)/%.auxist: $(TMPDIR)/%.auxist.cookie
 	$(QUIET)$(call replace-if-different-and-remove,$<,$@)
 
+ifdef FILE
+$(FILE).pdf: BARELATEX = pdflatex
+$(FILE).dvi: BARELATEX = latex
+endif
+
 # Steps: latex_init, latex_index, latex_bib, latex_refs*,
 # latex_postproc
 
@@ -699,11 +707,11 @@ ifeq ($(LATEXSTEP),latex_init)
 # when typing "make", at the moment forcing a rebuild is the safe bet,
 # dependency tracking in LaTeX being somewhat difficult with all the
 # packages that rely on/build intermediate files.
-$(FILE).$(EXT): FORCE
+$(FILE).dvi $(FILE).pdf: FORCE
 	$(QUIET)$(call run-latex,$*,$@); \
-	$(call make-deps,$*); \
+	$(call make-deps,$*,$@); \
 	$(ECHO) \#\#\#\#\#\# Was step: initial ; \
-	$(MAKE) -s LATEXSTEP=latex_index
+	$(MAKE) -s LATEXSTEP=latex_index $@
 
 endif
 
@@ -726,16 +734,16 @@ ifeq ($(LATEXSTEP),latex_index)
 # We loop here because page number for the glossary might change after
 # the compilation, hence we have to generate again the .gls
 
-$(FILE).$(EXT): FORCE
+$(FILE).dvi $(FILE).pdf: FORCE
 	$(QUIET)if [ -f $(TMPDIR)/$(FILE).index-done ]; \
 	then \
 	  egrep '\\cite\>' `cat $(TMPDIR)/$(FILE).index-done` $(TODEVNULL); \
 	  if [ $$? -eq 0 ]; then $(call run-latex,$*,$@); fi; \
 	  rm $(TMPDIR)/$(FILE).index-done; \
 	  $(ECHO) \#\#\#\#\#\# Was step: index, glossaries; \
-	  $(MAKE) -s LATEXSTEP=latex_index; \
+	  $(MAKE) -s LATEXSTEP=latex_index $@; \
 	else \
-	  $(MAKE) -s LATEXSTEP=latex_bib; \
+	  $(MAKE) -s LATEXSTEP=latex_bib $@; \
 	fi; 
 
 endif
@@ -750,7 +758,7 @@ ifeq ($(LATEXSTEP),latex_bib)
 	$(call bibtex-color-log,$*); \
 	touch $(TMPDIR)/$(FILE).bib-done
 
-$(FILE).$(EXT): FORCE
+$(FILE).dvi $(FILE).pdf: FORCE
 	$(QUIET)if [ -f $(TMPDIR)/$(FILE).bib-done ]; \
 	then \
 	  rm $(TMPDIR)/$(FILE).bib-done; \
@@ -758,7 +766,7 @@ $(FILE).$(EXT): FORCE
 	  $(ECHO) \#\#\#\#\#\# Was step: bibliography; \
 	fi; \
 	$(call test-run-again,$(FILE)); \
-	if [ "$$?" -eq 0 ]; then $(MAKE) -s LATEXSTEP=latex_refs; \
+	if [ "$$?" -eq 0 ]; then $(MAKE) -s LATEXSTEP=latex_refs $@; \
 	else $(call latex-color-log,$(FILE)); \
 	fi
 
@@ -767,7 +775,7 @@ endif
 
 ifeq ($(LATEXSTEP),latex_refs)
 
-$(FILE).$(EXT): FORCE
+$(FILE).dvi $(FILE).pdf: FORCE
 	$(QUIET)cref_counter=0; \
 	run_again=1; \
 	while [ $$cref_counter -lt 4 -a $$run_again -eq 1 ]; \
@@ -790,7 +798,7 @@ $(FILE).$(EXT): FORCE
 	  $(ECHO) \#\#\#\#\#\# Or simplier, there are undefined references; \
 	fi; \
 	$(call test-postproc,$(FILE)); \
-	if [ "$$?" -eq 0 ]; then $(MAKE) -s LATEXSTEP=latex_postproc; \
+	if [ "$$?" -eq 0 ]; then $(MAKE) -s LATEXSTEP=latex_postproc $@; \
 	else $(call latex-color-log,$(FILE)); \
 	fi
 
@@ -803,7 +811,7 @@ ifeq ($(LATEXSTEP),latex_postproc)
 	$(QUIET)$(ECHO) Running thumbpdf for $*; \
 	thumbpdf $* $(TODEVNULL)
 
-$(FILE).$(EXT): FORCE
+$(FILE).dvi $(FILE).pdf: FORCE
 	$(QUIET)$(call run-latex,$*,$@); \
 	$(ECHO) \#\#\#\#\#\# Was step: post-processing ; \
 	$(call latex-color-log,$(FILE))
