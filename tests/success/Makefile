@@ -16,15 +16,22 @@ TESTS= \
 # beamer_handouts
 
 PURGETESTS:=$(foreach test,$(TESTS),$(test).purge)
+CLEANTESTS:=$(foreach test,$(TESTS),$(test).clean)
 
-.PHONY: all purge $(TESTS) $(PURGETESTS)
+.PHONY: all purge clean $(TESTS) $(PURGETESTS) $(CLEANTESTS)
 
 all: $(TESTS)
 
 purge: $(PURGETESTS)
 
+clean: $(CLEANTESTS)
+
+
 $(PURGETESTS): %.purge:
 	cd $* && make -s purge
+
+$(CLEANTESTS): %.clean:
+	cd $* && make -s clean
 
 $(TESTS):
 	cd $@ && make -s
