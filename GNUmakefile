@@ -16,25 +16,6 @@ ifdef FILE
 export FILE
 endif
 
-# ifdef EXT
-# export EXT
-# endif
-
-# define find_dvi
-# grep '^[%]\+[ \t]*scolin-latex[ \t]*:[ \t]*dvi[ \t]*$$' $(FILE).tex >/dev/null 2>&1
-# endef
-
-# ifdef FILE
-# EXT ?= $(shell $(find_dvi) && echo dvi || echo pdf)
-# #EXT ?= pdf
-# endif
-
-# ifeq ($(EXT),pdf)
-#   BARELATEX = pdflatex
-# else
-#   BARELATEX = latex
-# endif
-
 HEVEAFLAGS ?= -fix
 BIBFLAGS ?= -min-crossrefs=1
 #VERBOSE := y
@@ -51,6 +32,7 @@ ECHO		= /bin/echo
 # TODO: TeXlive now ?
 BIBTEX          = bibtex $(BIBFLAGS)
 DVIPS		= dvips
+# BARELATEX is defined in the LATEXSTEP steps
 LATEX		= $(BARELATEX) -recorder -interaction=nonstopmode
 KPSEWHICH	= kpsewhich
 PS2PDF_NORMAL	= ps2pdf
@@ -560,6 +542,40 @@ define make-deps
   $(call get-misc-deps,$1,$2)
 endef
 
+dvicommand=\(^[%]\+[ \t]*scolin-latex[ \t]*:[ \t]*dvi[ \t]*$$\)
+dvithumbpdf=\(^[^%]*\\usepackage\[.*\(pdfmark\|dvips\|ps2pdf\).*\]{thumbpdf}[ \t]*$$\)
+
+pdfcommand=\(^[%]\+[ \t]*scolin-latex[ \t]*:[ \t]*pdf[ \t]*$$\)
+pdfoptionpackage=\(^[^%]*\\usepackage\[.*\(pdftex\).*\]{.*}.*$$\)
+pdfdocclass=\(^[^%]*\\documentclass\[.*\(pdftex\).*\]{.*}.*$$\)
+pdfbeamer=\(^[^%]*\\documentclass\(\[.*\]\)\?{beamer}.*$$\)
+pdfbeamerpackage=\(^[^%]*\\usepackage\(\[.*\]\)\?{beamerarticle}.*$$\)
+pdfbeamercall=\(^[^%]*\\setjobnamebeamerversion{.*}.*$$\)
+
+define find_needs
+needs_dvi=0; \
+needs_pdf=0; \
+grep '$(dvicommand)\|$(dvithumbpdf)' $1 $(TODEVNULL); \
+if [ "$$?" -eq 0 ]; then needs_dvi=1; fi; \
+grep '$(pdfcommand)\|$(pdfoptionpackage)\|$(pdfdocclass)\|$(pdfbeamer)\|$(pdfbeamerpackage)\|$(pdfbeamercall)' $1 $(TODEVNULL); \
+if [ "$$?" -eq 0 ]; then needs_pdf=1; fi; \
+if [ "$$needs_pdf" -eq 1 ]; \
+then \
+  if [ "$$needs_dvi" -eq 1 ]; \
+  then \
+    $(ECHO) Problem: document seems to require both latex and pdflatex; \
+    $(ECHO) Choosing pdf compilation by default; \
+  fi; \
+  file_ext=pdf; \
+else \
+  if [ "$$needs_dvi" -eq 1 ]; \
+  then file_ext=dvi; \
+  else file_ext=none; \
+  fi; \
+fi
+endef
+
+
 ############################################################################
 
 # Include if we're not cleaning
@@ -590,8 +606,8 @@ all:
 	$(QUIET)for f in $(FILES); \
 	do \
 	  fname=`basename $$f .tex`; \
-	  grep '^[%]\+[ \t]*scolin-latex[ \t]*:[ \t]*dvi[ \t]*$$' $$fname.tex  $(TODEVNULL) ; \
-	  if [ "$$?" -eq 0 ]; then fext=dvi; else fext=pdf; fi; \
+	  $(call find_needs,$$fname.tex); \
+	  fext=$$file_ext; \
 	  echo \#\#\#\#\#\# Now compiling $$fname; \
 	  $(MAKE) -s LATEXSTEP=latex_init FILE=$$fname $$fname.$$fext; \
 	done
@@ -623,7 +639,7 @@ unsafe-purge:
 
 else
 
-all: $(FILE).correctme
+all: $(FILE).pdf
 
 clean:
 	$(QUIET)if [ -f $(TMPDIR)/$(FILE).clean ]; \
@@ -644,6 +660,76 @@ unsafe-purge: purge
 	$(QUIET)rm -f $(LATEXCLEAN) ;\
 	rm -f $(LATEXPURGE) ;\
 	rm -rf $(TMPDIR)
+
+endif
+
+
+ifndef LATEXSTEP
+
+%.pdf: FORCE
+	$(QUIET)if [ ! -f $*.tex ]; \
+	then \
+	  $(ECHO) $*.tex does not exists, exiting; exit 1; \
+	fi; \
+	$(call find_needs,$*.tex); \
+	case "$$file_ext" in \
+	dvi) \
+	  $(MAKE) -s LATEXSTEP=latex_init FILE=$* $*.$$file_ext; \
+	  $(ECHO) Converting $*.dvi to $*.pdf; \
+	  dvipdfm $*; \
+	;; \
+	pdf) \
+	  $(MAKE) -s LATEXSTEP=latex_init FILE=$* $@; \
+	;; \
+	none)  \
+	  $(MAKE) -s LATEXSTEP=latex_init FILE=$* $@; \
+	;; \
+	esac 
+
+%.dvi: FORCE
+	$(QUIET)if [ ! -f $*.tex ]; \
+	then \
+	  $(ECHO) $*.tex does not exists, exiting; exit 1; \
+	fi; \
+	$(call find_needs,$*.tex); \
+	case "$$file_ext" in \
+	dvi) \
+	  $(MAKE) -s LATEXSTEP=latex_init FILE=$* $@; \
+	;; \
+	pdf) \
+	  $(ECHO) Sorry, $* seems to have pdf-specific peculiarities ; \
+	  $(ECHO) Thus producing $*.dvi from $*.pdf is not possible ; \
+	;; \
+	none)  \
+	  $(MAKE) -s LATEXSTEP=latex_init FILE=$* $@; \
+	;; \
+	esac 
+
+%.ps: FORCE
+	$(QUIET)if [ ! -f $*.tex ]; \
+	then \
+	  $(ECHO) $*.tex does not exists, exiting; exit 1; \
+	fi; \
+	$(call find_needs,$*.tex); \
+	case "$$file_ext" in \
+	dvi) \
+	  $(MAKE) -s LATEXSTEP=latex_init FILE=$* $*.$$file_ext; \
+	  $(ECHO) Converting $*.dvi to $*.ps; \
+	  dvips -o $*; \
+	;; \
+	pdf) \
+	  $(MAKE) -s LATEXSTEP=latex_init FILE=$* $*.$$file_ext; \
+	  $(ECHO) Converting $*.pdf to $*.ps; \
+	  pdftops $*.pdf; \
+	;; \
+	none)  \
+	  $(ECHO) No dvi- or pdf-specific peculiarity for $*; \
+	  $(ECHO) Compiling with pdflatex by default; \
+	  $(MAKE) -s LATEXSTEP=latex_init FILE=$* $*.pdf; \
+	  $(ECHO) Converting $*.pdf to $*.ps; \
+	  pdftops $*.pdf; \
+	;; \
+	esac 
 
 endif
 
