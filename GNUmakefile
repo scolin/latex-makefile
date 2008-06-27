@@ -601,6 +601,9 @@ help:
 ifndef FILE
 
 FILES=$(shell egrep -l '[^%]*\\documentclass' *.tex)
+FILES_PDF=$(FILES:.tex=.pdf)
+FILES_PS=$(FILES:.tex=.ps)
+FILES_DVI=$(FILES:.tex=.dvi)
 
 all:
 	$(QUIET)for f in $(FILES); \
@@ -611,6 +614,10 @@ all:
 	  echo \#\#\#\#\#\# Now compiling $$fname; \
 	  $(MAKE) -s LATEXSTEP=latex_init FILE=$$fname $$fname.$$fext; \
 	done
+
+pdf: $(FILES_PDF)
+ps: $(FILES_PS)
+dvi: $(FILES_DVI)
 
 clean:
 	$(QUIET)for f in $(FILES); \
@@ -715,7 +722,7 @@ ifndef LATEXSTEP
 	dvi) \
 	  $(MAKE) -s LATEXSTEP=latex_init FILE=$* $*.$$file_ext; \
 	  $(ECHO) Converting $*.dvi to $*.ps; \
-	  dvips -o $*; \
+	  dvips $* -o; \
 	;; \
 	pdf) \
 	  $(MAKE) -s LATEXSTEP=latex_init FILE=$* $*.$$file_ext; \
