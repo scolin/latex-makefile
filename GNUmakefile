@@ -542,10 +542,10 @@ define make-deps
   $(call get-misc-deps,$1,$2)
 endef
 
-dvicommand=\(^[%]\+[ \t]*scolin-latex[ \t]*:[ \t]*dvi[ \t]*$$\)
+dvicommand=\(^[%]\+[ \t]*Makefile\.latex[ \t]*:[ \t]*dvi[ \t]*$$\)
 dvithumbpdf=\(^[^%]*\\usepackage\[.*\(pdfmark\|dvips\|ps2pdf\).*\]{thumbpdf}[ \t]*$$\)
 
-pdfcommand=\(^[%]\+[ \t]*scolin-latex[ \t]*:[ \t]*pdf[ \t]*$$\)
+pdfcommand=\(^[%]\+[ \t]*Makefile\.latex[ \t]*:[ \t]*pdf[ \t]*$$\)
 pdfoptionpackage=\(^[^%]*\\usepackage\[.*\(pdftex\).*\]{.*}.*$$\)
 pdfdocclass=\(^[^%]*\\documentclass\[.*\(pdftex\).*\]{.*}.*$$\)
 pdfbeamer=\(^[^%]*\\documentclass\(\[.*\]\)\?{beamer}.*$$\)
@@ -573,6 +573,14 @@ else \
   else file_ext=none; \
   fi; \
 fi
+endef
+
+define separator
+\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#
+endef
+
+define announce
+\#\#\#\#\#\#
 endef
 
 
@@ -608,28 +616,43 @@ FILES_DVI=$(FILES:.tex=.dvi)
 all:
 	$(QUIET)for f in $(FILES); \
 	do \
+	  $(ECHO) $(separator); \
 	  fname=`basename $$f .tex`; \
 	  $(call find_needs,$$fname.tex); \
-	  fext=$$file_ext; \
-	  echo \#\#\#\#\#\# Now compiling $$fname; \
+	  if [ "x$$file_ext" = "xnone" ]; \
+	  then \
+	    fext="pdf"; \
+	    $(ECHO) $(announce) No dvi- or pdf-specific command found, using pdflatex; \
+	    $(ECHO) $(announce) Now compiling $$fname.$$fext; \
+	  else \
+	    fext=$$file_ext; \
+	    $(ECHO) $(announce) Now compiling $$fname.$$fext; \
+	  fi; \
 	  $(MAKE) -s LATEXSTEP=latex_init FILE=$$fname $$fname.$$fext; \
-	done
+	done; \
+	$(ECHO) $(separator)
+
 
 pdf: $(FILES_PDF)
+	$(QUIET)$(ECHO) $(separator)
+
 ps: $(FILES_PS)
+	$(QUIET)$(ECHO) $(separator)
+
 dvi: $(FILES_DVI)
+	$(QUIET)$(ECHO) $(separator)
 
 clean:
 	$(QUIET)for f in $(FILES); \
 	do \
-	  echo \#\#\#\#\#\# Now cleaning `basename $$f .tex`; \
+	  $(ECHO) $(announce) Now cleaning `basename $$f .tex`; \
 	  $(MAKE) -s FILE=`basename $$f .tex` clean; \
 	done
 
 purge:
 	$(QUIET)for f in $(FILES); \
 	do \
-	  echo \#\#\#\#\#\# Now purging `basename $$f .tex`; \
+	  $(ECHO) $(announce) Now purging `basename $$f .tex`; \
 	  $(MAKE) -s FILE=`basename $$f .tex` purge; \
 	done; \
 	rm -f $(TMPDIR)/*; rmdir --ignore-fail-on-non-empty $(TMPDIR)
@@ -639,8 +662,8 @@ purge:
 unsafe-purge:
 	$(QUIET)for f in $(FILES); \
 	do \
-	  echo \#\#\#\#\#\# Now \(unsafely\) purging `basename $$f .tex`; \
-	  echo \#\#\#\#\#\# You know what you do and/or you have backups ; \
+	  $(ECHO) $(announce) Now \(unsafely\) purging `basename $$f .tex`; \
+	  $(ECHO) $(announce) You know what you do and/or you have backups ; \
 	  $(MAKE) -s FILE=`basename $$f .tex` unsafe-purge; \
 	done
 
@@ -674,67 +697,71 @@ endif
 ifndef LATEXSTEP
 
 %.pdf: FORCE
-	$(QUIET)if [ ! -f $*.tex ]; \
+	$(QUIET)$(ECHO) $(separator); \
+	if [ ! -f $*.tex ]; \
 	then \
 	  $(ECHO) $*.tex does not exists, exiting; exit 1; \
 	fi; \
 	$(call find_needs,$*.tex); \
 	case "$$file_ext" in \
 	dvi) \
-	  $(MAKE) -s LATEXSTEP=latex_init FILE=$* $*.$$file_ext; \
-	  $(ECHO) Converting $*.dvi to $*.pdf; \
-	  dvipdfm $*; \
+	  $(ECHO) $(announce) Now compiling $*.$$file_ext; \
+	  $(MAKE) -s LATEXSTEP=latex_dvi $@; \
 	;; \
 	pdf) \
-	  $(MAKE) -s LATEXSTEP=latex_init FILE=$* $@; \
+	  $(ECHO) $(announce) Now compiling $*.$$file_ext; \
+	  $(MAKE) -s LATEXSTEP=latex_pdf $@; \
 	;; \
 	none)  \
-	  $(MAKE) -s LATEXSTEP=latex_init FILE=$* $@; \
+	    $(ECHO) $(announce) No dvi- or pdf-specific command found, using pdflatex; \
+	  $(ECHO) $(announce) Now compiling $*.pdf; \
+	  $(MAKE) -s LATEXSTEP=latex_pdf $@; \
 	;; \
 	esac 
 
 %.dvi: FORCE
-	$(QUIET)if [ ! -f $*.tex ]; \
+	$(QUIET)$(ECHO) $(separator); \
+	if [ ! -f $*.tex ]; \
 	then \
 	  $(ECHO) $*.tex does not exists, exiting; exit 1; \
 	fi; \
 	$(call find_needs,$*.tex); \
 	case "$$file_ext" in \
 	dvi) \
-	  $(MAKE) -s LATEXSTEP=latex_init FILE=$* $@; \
+	  $(ECHO) $(announce) Now compiling $*.$$file_ext; \
+	  $(MAKE) -s LATEXSTEP=latex_dvi $@; \
 	;; \
 	pdf) \
-	  $(ECHO) Sorry, $* seems to have pdf-specific peculiarities ; \
-	  $(ECHO) Thus producing $*.dvi from $*.pdf is not possible ; \
+	  $(ECHO) $(announce) Now compiling $*.$$file_ext; \
+	  $(MAKE) -s LATEXSTEP=latex_pdf $@; \
 	;; \
 	none)  \
-	  $(MAKE) -s LATEXSTEP=latex_init FILE=$* $@; \
+	    $(ECHO) $(announce) No dvi- or pdf-specific command found, using latex; \
+	  $(ECHO) $(announce) Now compiling $*.dvi; \
+	  $(MAKE) -s LATEXSTEP=latex_dvi $@; \
 	;; \
 	esac 
 
 %.ps: FORCE
-	$(QUIET)if [ ! -f $*.tex ]; \
+	$(QUIET)$(ECHO) $(separator); \
+	if [ ! -f $*.tex ]; \
 	then \
 	  $(ECHO) $*.tex does not exists, exiting; exit 1; \
 	fi; \
 	$(call find_needs,$*.tex); \
 	case "$$file_ext" in \
 	dvi) \
-	  $(MAKE) -s LATEXSTEP=latex_init FILE=$* $*.$$file_ext; \
-	  $(ECHO) Converting $*.dvi to $*.ps; \
-	  dvips $* -o; \
+	  $(ECHO) $(announce) Now compiling $*.$$file_ext; \
+	  $(MAKE) -s LATEXSTEP=latex_dvi $@; \
 	;; \
 	pdf) \
-	  $(MAKE) -s LATEXSTEP=latex_init FILE=$* $*.$$file_ext; \
-	  $(ECHO) Converting $*.pdf to $*.ps; \
-	  pdftops $*.pdf; \
+	  $(ECHO) $(announce) Now compiling $*.$$file_ext; \
+	  $(MAKE) -s LATEXSTEP=latex_pdf $@; \
 	;; \
 	none)  \
-	  $(ECHO) No dvi- or pdf-specific peculiarity for $*; \
-	  $(ECHO) Compiling with pdflatex by default; \
-	  $(MAKE) -s LATEXSTEP=latex_init FILE=$* $*.pdf; \
-	  $(ECHO) Converting $*.pdf to $*.ps; \
-	  pdftops $*.pdf; \
+	  $(ECHO) $(announce) No dvi- or pdf-specific command found, using pdflatex; \
+	  $(ECHO) $(announce) Now compiling $*.pdf; \
+	  $(MAKE) -s LATEXSTEP=latex_pdf $@; \
 	;; \
 	esac 
 
@@ -786,8 +813,46 @@ $(FILE).pdf: BARELATEX = pdflatex
 $(FILE).dvi: BARELATEX = latex
 endif
 
-# Steps: latex_init, latex_index, latex_bib, latex_refs*,
-# latex_postproc
+
+# Steps: {latex_dvi, latex_pdf}, latex_init, latex_index, latex_bib,
+# latex_refs*, latex_postproc
+
+ifeq ($(LATEXSTEP),latex_dvi)
+
+%.pdf: %.dvi
+	$(QUIET)$(ECHO) Converting $*.dvi to $*.ps; \
+	$(ECHO) $@ >>$(TMPDIR)/$*.purge; \
+	$(call trim,$(TMPDIR)/$*.purge); \
+	dvipdfm $<
+
+%.ps: %.dvi
+	$(QUIET)$(ECHO) Converting $*.dvi to $*.ps; \
+	$(ECHO) $@ >>$(TMPDIR)/$*.purge; \
+	$(call trim,$(TMPDIR)/$*.purge); \
+	dvips $< -o
+
+%.dvi:
+	$(QUIET)$(MAKE) -s LATEXSTEP=latex_init FILE=$* $*.dvi
+
+endif
+
+
+ifeq ($(LATEXSTEP),latex_pdf)
+
+%.pdf:
+	$(QUIET)$(MAKE) -s LATEXSTEP=latex_init FILE=$* $*.pdf
+
+%.ps: %.pdf
+	$(QUIET)$(ECHO) Converting $*.pdf to $*.ps; \
+	$(ECHO) $@ >>$(TMPDIR)/$*.purge; \
+	$(call trim,$(TMPDIR)/$*.purge); \
+	pdftops $<
+
+%.dvi:
+	$(QUIET)$(ECHO) Conversion from $*.pdf to $*.dvi impossible
+
+endif
+
 
 ifeq ($(LATEXSTEP),latex_init)
 
@@ -803,7 +868,7 @@ ifeq ($(LATEXSTEP),latex_init)
 $(FILE).dvi $(FILE).pdf: FORCE
 	$(QUIET)$(call run-latex,$*,$@); \
 	$(call make-deps,$*,$@); \
-	$(ECHO) \#\#\#\#\#\# Was step: initial ; \
+	$(ECHO) $(announce) Was step: initial ; \
 	$(MAKE) -s LATEXSTEP=latex_index $@
 
 endif
@@ -833,7 +898,7 @@ $(FILE).dvi $(FILE).pdf: FORCE
 	  egrep '\\cite\>' `cat $(TMPDIR)/$(FILE).index-done` $(TODEVNULL); \
 	  if [ $$? -eq 0 ]; then $(call run-latex,$*,$@); fi; \
 	  rm $(TMPDIR)/$(FILE).index-done; \
-	  $(ECHO) \#\#\#\#\#\# Was step: index, glossaries; \
+	  $(ECHO) $(announce) Was step: index, glossaries; \
 	  $(MAKE) -s LATEXSTEP=latex_index $@; \
 	else \
 	  $(MAKE) -s LATEXSTEP=latex_bib $@; \
@@ -856,7 +921,7 @@ $(FILE).dvi $(FILE).pdf: FORCE
 	then \
 	  rm $(TMPDIR)/$(FILE).bib-done; \
 	  $(call run-latex,$(FILE),$@); \
-	  $(ECHO) \#\#\#\#\#\# Was step: bibliography; \
+	  $(ECHO) $(announce) Was step: bibliography; \
 	fi; \
 	$(call test-run-again,$(FILE)); \
 	if [ "$$?" -eq 0 ]; then $(MAKE) -s LATEXSTEP=latex_refs $@; \
@@ -878,17 +943,17 @@ $(FILE).dvi $(FILE).pdf: FORCE
 	  if [ "$$?" -ne 0 ]; then run_again=0; fi; \
 	  cref_counter=`expr $$cref_counter \+ 1`; \
 	done; \
-	$(ECHO) \#\#\#\#\#\# Was step: cross-references; \
+	$(ECHO) $(announce) Was step: cross-references; \
 	if [ $$cref_counter -gt 2 ]; \
 	then \
-	  $(ECHO) \#\#\#\#\#\# $$cref_counter compilations needed just for cross-references; \
-	  $(ECHO) \#\#\#\#\#\# This seems a lot... ; \
+	  $(ECHO) $(announce) $$cref_counter compilations needed just for cross-references; \
+	  $(ECHO) $(announce) This seems a lot... ; \
 	  if [ $$run_again -eq 1 ]; \
-	  then $(ECHO) \#\#\#\#\#\# Plus it seems to need to be run again ; \
+	  then $(ECHO) $(announce) Plus it seems to need to be run again ; \
 	  fi ; \
-	  $(ECHO) \#\#\#\#\#\# Either this document is a pathological case for cross-references, ; \
-	  $(ECHO) \#\#\#\#\#\# Or you use a badly-programmed crossrefs-wise style file ; \
-	  $(ECHO) \#\#\#\#\#\# Or simplier, there are undefined references; \
+	  $(ECHO) $(announce) Either this document is a pathological case for cross-references, ; \
+	  $(ECHO) $(announce) Or you use a badly-programmed crossrefs-wise style file ; \
+	  $(ECHO) $(announce) Or simplier, there are undefined references; \
 	fi; \
 	$(call test-postproc,$(FILE)); \
 	if [ "$$?" -eq 0 ]; then $(MAKE) -s LATEXSTEP=latex_postproc $@; \
@@ -906,7 +971,7 @@ ifeq ($(LATEXSTEP),latex_postproc)
 
 $(FILE).dvi $(FILE).pdf: FORCE
 	$(QUIET)$(call run-latex,$*,$@); \
-	$(ECHO) \#\#\#\#\#\# Was step: post-processing ; \
+	$(ECHO) $(announce) Was step: post-processing ; \
 	$(call latex-color-log,$(FILE))
 else
 
@@ -919,6 +984,33 @@ endif
 
 %.html: %.$(EXT)
 	$(HEVEA) $*.hva $*
+
+ifndef LATEXSTEP
+
+%:
+	$(QUIET)fname=`basename $* .tex`; \
+	if [ -f "$$fname".tex ]; \
+	then \
+	  $(ECHO) $(separator); \
+	  $(call find_needs,$*.tex); \
+	  case "$$file_ext" in \
+	  dvi) \
+	    $(ECHO) $(announce) Now compiling $$fname.$$file_ext; \
+	    $(MAKE) -s LATEXSTEP=latex_dvi $$fname.$$file_ext; \
+	  ;; \
+	  pdf) \
+	    $(ECHO) $(announce) Now compiling $$fname.$$file_ext; \
+	    $(MAKE) -s LATEXSTEP=latex_pdf $$fname.$$file_ext; \
+	  ;; \
+	  none)  \
+	    $(ECHO) $(announce) No dvi- or pdf-specific command found, using pdflatex; \
+	    $(ECHO) $(announce) Now compiling $$fname.pdf; \
+	    $(MAKE) -s LATEXSTEP=latex_pdf $$fname.pdf; \
+	  ;; \
+	  esac; \
+	fi
+
+endif
 
 
 
@@ -945,11 +1037,27 @@ define help_text
 #   By default, compilation is made with pdflatex (hence it produces a
 #   pdf file), unless you put the following line into the main file
 #   (the file where you declare \documentclass{...}:
-#     % scolin-latex: dvi
+#     % Makefile.latex: dvi
 #   Then it will use latex rather than pdflatex.
 #   At the end of the compilation errors will be highlighted, in color
 #   if your terminal emulator supports it. If there was an error, it
 #   is stopped and will highlight errors as well.
+#
+# dvi, ps, pdf:
+#   Like "all", but tries to force the target format to dvi, ps or
+#   pdf. It will attempt to do conversions if needed, such as dvi->pdf
+#   if "pdf" was asked and the file can only be compiled with latex
+#   (and not pdflatex).
+#
+# <file>.dvi, <file>.ps, <file>.pdf:
+#   It will compile <file>, doing conversion as described above if
+#   needed.
+#
+# <file>:
+#   It will compile <file> to the appropriate format, dvi or
+#   pdf(default). <file>.tex must exist in the current directory. It
+#   will not work if <file> is named all, dvi, ps, pdf, clean, purge,
+#   unsafe-purge (the phony targets of this makefile, actually).
 #
 # clean:
 #   It will remove log files, intermediate files, etc. It will not
