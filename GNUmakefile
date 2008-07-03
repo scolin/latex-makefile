@@ -166,10 +166,17 @@ endef
 #
 # $(call get-inputs,<stem>,<target files>)
 define get-inputs
-if [ ! -f $(TMPDIR)/get-inputs.sed ]; then touch $(TMPDIR)/get-inputs.sed; $(call make-get-inputs); fi ; \
+if [ ! -f $(TMPDIR)/get-inputs.sed ]; \
+then \
+  touch $(TMPDIR)/get-inputs.sed; \
+  $(call make-get-inputs); \
+  $(ECHO) $(TMPDIR)/get-inputs.sed >>$(TMPDIR)/$1.purge ; \
+fi ; \
 $(SED) -f $(TMPDIR)/get-inputs.sed $(TMPDIR)/$1.fls | \
 $(SED) -e 's/^.*$$/$2: &/' | \
-sort | uniq >$(TMPDIR)/$1.deps
+sort | uniq >$(TMPDIR)/$1.deps; \
+$(ECHO) $(TMPDIR)/$1.deps >>$(TMPDIR)/$1.purge ; \
+$(call trim,$(TMPDIR)/$1.purge)
 endef
 
 define echo-get-inputs
@@ -237,6 +244,8 @@ egrep '^OUTPUT' $(TMPDIR)/$1.fls | \
 $(SED) -e 's/^OUTPUT //' | \
 egrep '\.pdf$$|\.ps$$|\.dvi$$' \
  >$(TMPDIR)/$1.purge.cookie; \
+$(ECHO) $(TMPDIR)/$1.clean >>$(TMPDIR)/$1.purge ; \
+$(ECHO) $(TMPDIR)/$1.purge >>$(TMPDIR)/$1.purge ; \
 $(call update_file,$(TMPDIR)/$1.purge)
 endef
 
@@ -352,7 +361,13 @@ endef
 #
 # $(call flatten-aux,<toplevel aux>,<output file>)
 define flatten-aux
-if [ ! -f $(TMPDIR)/flatten-aux.sed ]; then touch $(TMPDIR)/flatten-aux.sed; $(call make-flatten-aux); fi; \
+if [ ! -f $(TMPDIR)/flatten-aux.sed ]; \
+then \
+  touch $(TMPDIR)/flatten-aux.sed; \
+  $(call make-flatten-aux); \
+  $(ECHO) $(TMPDIR)/flatten-aux.sed >>$(TMPDIR)/$1.purge ; \
+  $(call trim,$(TMPDIR)/$1.purge) ;\
+fi; \
 $(SED) -f $(TMPDIR)/flatten-aux.sed '$1' > "$(TMPDIR)/$1.$$$$.sed.make"; \
 $(SED) -f "$(TMPDIR)/$1.$$$$.sed.make" '$1' > "$(TMPDIR)/$1.$$$$.make"; \
 $(SED) \
@@ -430,7 +445,13 @@ endef
 
 # $(call latex-color-log,<LaTeX stem>)
 define latex-color-log
-if [ ! -f $(TMPDIR)/color_tex.sed ]; then touch $(TMPDIR)/color_tex.sed; $(call make-color_tex); fi; \
+if [ ! -f $(TMPDIR)/color_tex.sed ]; \
+then \
+  touch $(TMPDIR)/color_tex.sed; \
+  $(call make-color_tex); \
+  $(ECHO) $(TMPDIR)/color_tex.sed >>$(TMPDIR)/$1.purge ; \
+  $(call trim,$(TMPDIR)/$1.purge) ;\
+fi; \
 $(ECHO) \*\*\* LaTeX warnings and errors below \*\*\* ; \
 $(SED) -n -f $(TMPDIR)/color_tex.sed $1.log
 endef
@@ -463,7 +484,13 @@ endef
 #
 # $(call latex-error-log,<LaTeX stem>)
 define latex-error-log
-if [ ! -f $(TMPDIR)/latex-errors.sed ]; then touch $(TMPDIR)/latex-errors.sed; $(call make-latex-errors); fi; \
+if [ ! -f $(TMPDIR)/latex-errors.sed ]; \
+then \
+  touch $(TMPDIR)/latex-errors.sed; \
+  $(call make-latex-errors); \
+  $(ECHO) $(TMPDIR)/latex-errors.sed >>$(TMPDIR)/$1.purge ; \
+  $(call trim,$(TMPDIR)/$1.purge) ;\
+fi; \
 $(SED) -f $(TMPDIR)/latex-errors.sed $1.log
 endef
 
@@ -493,7 +520,13 @@ endef
 
 # $(call bibtex-color-log,<LaTeX stem>)
 define bibtex-color-log
-if [ ! -f $(TMPDIR)/bibtex-color.sed ]; then touch $(TMPDIR)/bibtex-color.sed; $(call make-bibtex-color); fi; \
+if [ ! -f $(TMPDIR)/bibtex-color.sed ]; \
+then \
+  touch $(TMPDIR)/bibtex-color.sed; \
+  $(call make-bibtex-color); \
+  $(ECHO) $(TMPDIR)/bibtex-color.sed >>$(TMPDIR)/$1.purge ; \
+  $(call trim,$(TMPDIR)/$1.purge) ;\
+fi; \
 $(SED) -f $(TMPDIR)/bibtex-color.sed $1.blg
 endef
 
@@ -512,6 +545,8 @@ fi; fi; \
 if [ ! -d $(TMPDIR) ]; then mkdir $(TMPDIR); fi; \
 mv "$1".fls $(TMPDIR); \
 $(CP) "$1".log $(TMPDIR); \
+$(ECHO) $(TMPDIR)/"$1".fls >>$(TMPDIR)/$1.purge ; \
+$(ECHO) $(TMPDIR)/"$1".log >>$(TMPDIR)/$1.purge ; \
 $(call update_clean_file,$1) ;\
 $(call update_purge_file,$1) ;\
 if [ "$$latexrunerror" -ne 0 ]; then rm -f $2; $(call latex-error-log,$1); exit 1; fi
@@ -657,7 +692,7 @@ purge:
 	  $(ECHO) $(announce) Now purging `basename $$f .tex`; \
 	  $(MAKE) -s FILE=`basename $$f .tex` purge; \
 	done; \
-	rm -f $(TMPDIR)/*; $(call RMDIR,$(TMPDIR))
+	$(call RMDIR,$(TMPDIR))
 
 #TODO: ideally this last rm step should not be necessary
 
