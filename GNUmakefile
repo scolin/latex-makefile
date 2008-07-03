@@ -28,6 +28,8 @@ SED		= sed
 CP		= cp -RpP
 # Avoiding builtin echo
 ECHO		= /bin/echo
+# GNU rmdir has --ignore-fail-on-non-empty but not FreeBSD's
+RMDIR		= rmdir >/dev/null 2>&1 $1 || true
 # == LaTeX (tetex-provided) ==
 # TODO: TeXlive now ?
 BIBTEX          = bibtex $(BIBFLAGS)
@@ -655,7 +657,7 @@ purge:
 	  $(ECHO) $(announce) Now purging `basename $$f .tex`; \
 	  $(MAKE) -s FILE=`basename $$f .tex` purge; \
 	done; \
-	rm -f $(TMPDIR)/*; rmdir --ignore-fail-on-non-empty $(TMPDIR)
+	rm -f $(TMPDIR)/*; $(call RMDIR,$(TMPDIR))
 
 #TODO: ideally this last rm step should not be necessary
 
@@ -681,7 +683,7 @@ purge: clean
 	$(QUIET)if [ -f $(TMPDIR)/$(FILE).purge ]; \
 	then cat $(TMPDIR)/$(FILE).purge | xargs rm -f ;\
 	fi ; \
-	rmdir --ignore-fail-on-non-empty $(TMPDIR) ;\
+	$(call RMDIR,$(TMPDIR)) ;\
 	rm -rf $(MOREPURGE)
 
 # This target has the potential of removing user files
