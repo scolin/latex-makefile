@@ -170,7 +170,6 @@ if [ ! -f $(TMPDIR)/get-inputs.sed ]; \
 then \
   touch $(TMPDIR)/get-inputs.sed; \
   $(call make-get-inputs); \
-  $(ECHO) $(TMPDIR)/get-inputs.sed >>$(TMPDIR)/$1.purge ; \
 fi ; \
 $(SED) -f $(TMPDIR)/get-inputs.sed $(TMPDIR)/$1.fls | \
 $(SED) -e 's/^.*$$/$2: &/' | \
@@ -246,6 +245,12 @@ egrep '\.pdf$$|\.ps$$|\.dvi$$' \
  >$(TMPDIR)/$1.purge.cookie; \
 $(ECHO) $(TMPDIR)/$1.clean >>$(TMPDIR)/$1.purge ; \
 $(ECHO) $(TMPDIR)/$1.purge >>$(TMPDIR)/$1.purge ; \
+for i in get-inputs.sed flatten-aux.sed \
+         color_tex.sed latex-errors.sed \
+         bibtex-color.sed; \
+do \
+  $(ECHO) $(TMPDIR)/$$i >>$(TMPDIR)/$1.purge ; \
+done; \
 $(call update_file,$(TMPDIR)/$1.purge)
 endef
 
@@ -359,23 +364,21 @@ endef
 # Get all important .aux files from the top-level .aux file and merges
 # them all into a single file, which it outputs to stdout.
 #
-# $(call flatten-aux,<toplevel aux>,<output file>)
+# $(call flatten-aux,<LaTeX stem>,<output file>)
 define flatten-aux
 if [ ! -f $(TMPDIR)/flatten-aux.sed ]; \
 then \
   touch $(TMPDIR)/flatten-aux.sed; \
   $(call make-flatten-aux); \
-  $(ECHO) $(TMPDIR)/flatten-aux.sed >>$(TMPDIR)/$1.purge ; \
-  $(call trim,$(TMPDIR)/$1.purge) ;\
 fi; \
-$(SED) -f $(TMPDIR)/flatten-aux.sed '$1' > "$(TMPDIR)/$1.$$$$.sed.make"; \
-$(SED) -f "$(TMPDIR)/$1.$$$$.sed.make" '$1' > "$(TMPDIR)/$1.$$$$.make"; \
+$(SED) -f $(TMPDIR)/flatten-aux.sed '$1.aux' > "$(TMPDIR)/$1.aux.$$$$.sed.make"; \
+$(SED) -f "$(TMPDIR)/$1.aux.$$$$.sed.make" '$1.aux' > "$(TMPDIR)/$1.aux.$$$$.make"; \
 $(SED) \
 -e '/^\\relax/d' \
 -e '/^\\bibcite/d' \
 -e 's/^\(\\newlabel{[^}]\{1,\}}\).*/\1/' \
-"$(TMPDIR)/$1.$$$$.make" | sort > '$2'; \
-rm -f $(TMPDIR)/$1.$$$$.{sed.,}make
+"$(TMPDIR)/$1.aux.$$$$.make" | sort > '$2'; \
+rm -f $(TMPDIR)/$1.aux.$$$$.{sed.,}make
 endef
 
 # Makes an aux file that only has stuff relevant to the bbl in it
@@ -449,8 +452,6 @@ if [ ! -f $(TMPDIR)/color_tex.sed ]; \
 then \
   touch $(TMPDIR)/color_tex.sed; \
   $(call make-color_tex); \
-  $(ECHO) $(TMPDIR)/color_tex.sed >>$(TMPDIR)/$1.purge ; \
-  $(call trim,$(TMPDIR)/$1.purge) ;\
 fi; \
 $(ECHO) \*\*\* LaTeX warnings and errors below \*\*\* ; \
 $(SED) -n -f $(TMPDIR)/color_tex.sed $1.log
@@ -488,8 +489,6 @@ if [ ! -f $(TMPDIR)/latex-errors.sed ]; \
 then \
   touch $(TMPDIR)/latex-errors.sed; \
   $(call make-latex-errors); \
-  $(ECHO) $(TMPDIR)/latex-errors.sed >>$(TMPDIR)/$1.purge ; \
-  $(call trim,$(TMPDIR)/$1.purge) ;\
 fi; \
 $(SED) -f $(TMPDIR)/latex-errors.sed $1.log
 endef
@@ -524,8 +523,6 @@ if [ ! -f $(TMPDIR)/bibtex-color.sed ]; \
 then \
   touch $(TMPDIR)/bibtex-color.sed; \
   $(call make-bibtex-color); \
-  $(ECHO) $(TMPDIR)/bibtex-color.sed >>$(TMPDIR)/$1.purge ; \
-  $(call trim,$(TMPDIR)/$1.purge) ;\
 fi; \
 $(SED) -f $(TMPDIR)/bibtex-color.sed $1.blg
 endef
@@ -814,10 +811,12 @@ endif
 .auxglo .auxglo.cookie
 
 $(TMPDIR)/$(FILE).aux.flat: $(FILE).aux
-	$(QUIET)$(call flatten-aux,$<,$@)
+	$(QUIET)$(call flatten-aux,$(FILE),$@); \
+	$(ECHO) "$@" >>$(TMPDIR)/$(FILE).purge
 
 $(TMPDIR)/%.auxbbl: $(TMPDIR)/%.auxbbl.cookie
-	$(QUIET)$(call replace-if-different-and-remove,$<,$@)
+	$(QUIET)$(call replace-if-different-and-remove,$<,$@); \
+	$(ECHO) "$@" >>$(TMPDIR)/$(FILE).purge
 
 $(TMPDIR)/$(FILE).auxbbl.cookie: $(TMPDIR)/$(FILE).aux.flat
 	$(QUIET)$(call make-auxbbl-file,$<,$@)
@@ -831,7 +830,8 @@ $(TMPDIR)/%.auxidx.cookie: %.idx
 	$(QUIET)$(CP) $< $@
 
 $(TMPDIR)/%.auxidx: $(TMPDIR)/%.auxidx.cookie
-	$(QUIET)$(call replace-if-different-and-remove,$<,$@)
+	$(QUIET)$(call replace-if-different-and-remove,$<,$@); \
+	$(ECHO) "$@" >>$(TMPDIR)/$(FILE).purge
 
 $(TMPDIR)/%.auxglo.cookie: %.glo
 	$(QUIET)$(CP) $< $@
@@ -840,10 +840,12 @@ $(TMPDIR)/%.auxist.cookie: %.ist
 	$(QUIET)$(CP) $< $@
 
 $(TMPDIR)/%.auxglo: $(TMPDIR)/%.auxglo.cookie
-	$(QUIET)$(call replace-if-different-and-remove,$<,$@)
+	$(QUIET)$(call replace-if-different-and-remove,$<,$@); \
+	$(ECHO) "$@" >>$(TMPDIR)/$(FILE).purge
 
 $(TMPDIR)/%.auxist: $(TMPDIR)/%.auxist.cookie
-	$(QUIET)$(call replace-if-different-and-remove,$<,$@)
+	$(QUIET)$(call replace-if-different-and-remove,$<,$@); \
+	$(ECHO) "$@" >>$(TMPDIR)/$(FILE).purge
 
 ifdef FILE
 $(FILE).pdf: BARELATEX = pdflatex
