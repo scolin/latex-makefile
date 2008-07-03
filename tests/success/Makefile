@@ -15,6 +15,7 @@ TESTS= \
   thumbpdf
 # beamer_handouts
 
+UNPURGETESTS:=$(foreach test,$(TESTS),$(test).unpurge)
 PURGETESTS:=$(foreach test,$(TESTS),$(test).purge)
 CLEANTESTS:=$(foreach test,$(TESTS),$(test).clean)
 
@@ -22,10 +23,15 @@ CLEANTESTS:=$(foreach test,$(TESTS),$(test).clean)
 
 all: $(TESTS)
 
+unsafe-purge: $(UNPURGETESTS)
+
 purge: $(PURGETESTS)
 
 clean: $(CLEANTESTS)
 
+
+$(UNPURGETESTS): %.unpurge:
+	cd $* && make -s unsafe-purge
 
 $(PURGETESTS): %.purge:
 	cd $* && make -s purge
