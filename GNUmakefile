@@ -870,7 +870,7 @@ ifeq ($(LATEXSTEP),latex_dvi)
 	$(call trim,$(TMPDIR)/$*.purge); \
 	dvips $< -o
 
-%.dvi:
+%.dvi: FORCE
 	$(QUIET)$(MAKE) -s LATEXSTEP=latex_init FILE=$* $*.dvi
 
 endif
@@ -878,7 +878,7 @@ endif
 
 ifeq ($(LATEXSTEP),latex_pdf)
 
-%.pdf:
+%.pdf: FORCE
 	$(QUIET)$(MAKE) -s LATEXSTEP=latex_init FILE=$* $*.pdf
 
 %.ps: %.pdf
@@ -895,6 +895,10 @@ endif
 
 ifeq ($(LATEXSTEP),latex_init)
 
+define CONDFORCE
+$(shell [ ! -f $(TMPDIR)/$(FILE).deps ] && echo FORCE)
+endef
+
 %.bbl: %.aux
 	$(QUIET)true
 
@@ -904,7 +908,7 @@ ifeq ($(LATEXSTEP),latex_init)
 # when typing "make", at the moment forcing a rebuild is the safe bet,
 # dependency tracking in LaTeX being somewhat difficult with all the
 # packages that rely on/build intermediate files.
-$(FILE).dvi $(FILE).pdf: FORCE
+$(FILE).dvi $(FILE).pdf: $(CONDFORCE)
 	$(QUIET)$(call run-latex,$*,$@); \
 	$(call make-deps,$*,$@); \
 	$(ECHO) $(announce) Was step: initial ; \
