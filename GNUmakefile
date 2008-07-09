@@ -460,7 +460,7 @@ then \
   touch $(TMPDIR)/color_tex.sed; \
   $(call make-color_tex); \
 fi; \
-$(ECHO) \*\*\* LaTeX warnings and errors below \*\*\* ; \
+$(ECHO) \*\*\* LaTeX '$(C_WARNING)warnings$(C_RESET)' and '$(C_ERROR)errors$(C_RESET)' below \*\*\* ; \
 $(SED) -n -f $(TMPDIR)/color_tex.sed $1.log
 endef
 
