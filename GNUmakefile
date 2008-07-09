@@ -569,9 +569,9 @@ define test-run-again
 egrep -q '^(.*Rerun .*|No file $1\.[^.]+\.|No file [^ ]+\.bbl\.|LaTeX Warning: There were undefined references\.)$$' $(TMPDIR)/$1.log
 endef
 
-# $(call test-postproc,<source stem>)
-define test-postproc
-egrep -q '^Package thumbpdf Warning: Thumbnail data file .$1\.tp(t|m). not found.$$' $(TMPDIR)/$1.log
+# $(call test-rerun,<source stem>)
+define test-rerun
+egrep -q '^(.*Rerun .*|LaTeX Warning: There were undefined references\.)$$' $(TMPDIR)/$1.log
 endef
 
 # Will create the stem.deps dependencies file
@@ -982,12 +982,12 @@ ifeq ($(LATEXSTEP),latex_refs)
 
 $(FILE).dvi $(FILE).pdf: FORCE
 	$(QUIET)cref_counter=0; \
-	$(call test-run-again,$(FILE)); \
+	$(call test-rerun,$(FILE)); \
 	if [ "$$?" -ne 0 ]; then run_again=0; else run_again=1; fi; \
 	while [ $$cref_counter -lt 4 -a $$run_again -eq 1 ]; \
 	do \
 	  $(call run-latex,$(FILE),$@); \
-	  $(call test-run-again,$(FILE)); \
+	  $(call test-rerun,$(FILE)); \
 	  if [ "$$?" -ne 0 ]; then run_again=0; fi; \
 	  cref_counter=`expr $$cref_counter \+ 1`; \
 	done; \
