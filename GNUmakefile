@@ -385,7 +385,7 @@ $(SED) \
 -e '/^\\bibcite/d' \
 -e 's/^\(\\newlabel{[^}]\{1,\}}\).*/\1/' \
 "$(TMPDIR)/$1.aux.$$$$.make" | sort > '$2'; \
-rm -f $(TMPDIR)/$1.aux.$$$$.{sed.,}make
+rm -f $(TMPDIR)/$1.aux.$$$$.sed.make $(TMPDIR)/$1.aux.$$$$.make
 endef
 
 # Makes an aux file that only has stuff relevant to the bbl in it
