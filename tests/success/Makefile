@@ -32,13 +32,13 @@ clean: $(CLEANTESTS)
 
 
 $(UNPURGETESTS): %.unpurge:
-	cd $* && make -s unsafe-purge
+	cd $* && $(MAKE) -s unsafe-purge
 
 $(PURGETESTS): %.purge:
-	cd $* && make -s purge
+	cd $* && $(MAKE) -s purge
 
 $(CLEANTESTS): %.clean:
-	cd $* && make -s clean
+	cd $* && $(MAKE) -s clean
 
 $(TESTS):
-	cd $@ && make -s
+	cd $@ && $(MAKE) -s
