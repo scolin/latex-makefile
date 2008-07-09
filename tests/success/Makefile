@@ -12,7 +12,8 @@ TESTS= \
   minitoc-sect \
   multiple-documents \
   natbib \
-  thumbpdf
+  thumbpdf \
+  thumbpdf-dvi
 # beamer_handouts
 
 UNPURGETESTS:=$(foreach test,$(TESTS),$(test).unpurge)
