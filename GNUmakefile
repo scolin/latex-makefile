@@ -30,19 +30,26 @@ CP		= cp -RpP
 ECHO		= /bin/echo
 # GNU rmdir has --ignore-fail-on-non-empty but not FreeBSD's
 RMDIR		= rmdir >/dev/null 2>&1 $1 || true
-# == LaTeX (tetex-provided) ==
-# TODO: TeXlive now ?
+
+# == LaTeX (TeX distribution-provided) ==
+
 BIBTEX          = bibtex $(BIBFLAGS)
-DVIPS		= dvips
+MAKEINDEX       = makeindex -q
 # BARELATEX is defined in the LATEXSTEP steps
 LATEX		= $(BARELATEX) -recorder -interaction=nonstopmode
 KPSEWHICH	= kpsewhich
-PS2PDF_NORMAL	= ps2pdf
-PS2PDF_EMBED	= ps2pdf13
+
+DVI2PS		= dvips -o $1.ps $1.dvi
+PS2PDF		= ps2pdf13 $1.ps $1.pdf
+DVI2PDF		= dvipdf $1.dvi $1.pdf
+DVI2PDFLINKS	= dvipdfm -o $1.pdf $1.dvi
+PDF2PS		= pdftops $1.pdf $1.ps
+
 HEVEA           = hevea $(HEVEAFLAGS)
-MAKEINDEX       = makeindex -q
 # Glosstex, also ?
+
 # = OPTIONAL PROGRAMS =
+
 # == Makefile Color Output ==
 TPUT		= tput
 
@@ -564,7 +571,7 @@ endef
 
 # $(call test-postproc,<source stem>)
 define test-postproc
-egrep -q '^Package thumbpdf Warning: Thumbnail data file .$1\.tpt. not found.$$' $(TMPDIR)/$1.log
+egrep -q '^Package thumbpdf Warning: Thumbnail data file .$1\.tp(t|m). not found.$$' $(TMPDIR)/$1.log
 endef
 
 # Will create the stem.deps dependencies file
@@ -859,16 +866,16 @@ endif
 ifeq ($(LATEXSTEP),latex_dvi)
 
 %.pdf: %.dvi
-	$(QUIET)$(ECHO) Converting $*.dvi to $*.ps; \
+	$(QUIET)$(ECHO) Converting $*.dvi to $*.pdf; \
 	$(ECHO) $@ >>$(TMPDIR)/$*.purge; \
 	$(call trim,$(TMPDIR)/$*.purge); \
-	dvipdfm $<
+	$(call DVI2PDF,$*)
 
 %.ps: %.dvi
 	$(QUIET)$(ECHO) Converting $*.dvi to $*.ps; \
 	$(ECHO) $@ >>$(TMPDIR)/$*.purge; \
 	$(call trim,$(TMPDIR)/$*.purge); \
-	dvips $< -o
+	$(call DVI2PS,$*)
 
 %.dvi: FORCE
 	$(QUIET)$(MAKE) -s LATEXSTEP=latex_init FILE=$* $*.dvi
@@ -885,7 +892,7 @@ ifeq ($(LATEXSTEP),latex_pdf)
 	$(QUIET)$(ECHO) Converting $*.pdf to $*.ps; \
 	$(ECHO) $@ >>$(TMPDIR)/$*.purge; \
 	$(call trim,$(TMPDIR)/$*.purge); \
-	pdftops $<
+	$(call PDF2PS,$*)
 
 %.dvi:
 	$(QUIET)$(ECHO) Conversion from $*.pdf to $*.dvi impossible
@@ -896,7 +903,7 @@ endif
 ifeq ($(LATEXSTEP),latex_init)
 
 define CONDFORCE
-$(shell [ ! -f $(TMPDIR)/$(FILE).deps ] && echo FORCE)
+$(shell [ ! -f $(TMPDIR)/$(FILE).deps ] && $(ECHO) FORCE)
 endef
 
 %.bbl: %.aux
@@ -966,10 +973,7 @@ $(FILE).dvi $(FILE).pdf: FORCE
 	  $(call run-latex,$(FILE),$@); \
 	  $(ECHO) $(announce) Was step: bibliography; \
 	fi; \
-	$(call test-run-again,$(FILE)); \
-	if [ "$$?" -eq 0 ]; then $(MAKE) -s LATEXSTEP=latex_refs $@; \
-	else $(call latex-color-log,$(FILE)); \
-	fi
+	$(MAKE) -s LATEXSTEP=latex_refs $@
 
 endif
 
@@ -978,7 +982,8 @@ ifeq ($(LATEXSTEP),latex_refs)
 
 $(FILE).dvi $(FILE).pdf: FORCE
 	$(QUIET)cref_counter=0; \
-	run_again=1; \
+	$(call test-run-again,$(FILE)); \
+	if [ "$$?" -ne 0 ]; then run_again=0; else run_again=1; fi; \
 	while [ $$cref_counter -lt 4 -a $$run_again -eq 1 ]; \
 	do \
 	  $(call run-latex,$(FILE),$@); \
@@ -986,7 +991,10 @@ $(FILE).dvi $(FILE).pdf: FORCE
 	  if [ "$$?" -ne 0 ]; then run_again=0; fi; \
 	  cref_counter=`expr $$cref_counter \+ 1`; \
 	done; \
-	$(ECHO) $(announce) Was step: cross-references; \
+	if [ $$cref_counter -gt 0 ]; \
+	then \
+	  $(ECHO) $(announce) Was step: cross-references; \
+	fi; \
 	if [ $$cref_counter -gt 2 ]; \
 	then \
 	  $(ECHO) $(announce) $$cref_counter compilations needed just for cross-references; \
@@ -998,24 +1006,42 @@ $(FILE).dvi $(FILE).pdf: FORCE
 	  $(ECHO) $(announce) Or you use a badly-programmed crossrefs-wise style file ; \
 	  $(ECHO) $(announce) Or simplier, there are undefined references; \
 	fi; \
-	$(call test-postproc,$(FILE)); \
-	if [ "$$?" -eq 0 ]; then $(MAKE) -s LATEXSTEP=latex_postproc $@; \
-	else $(call latex-color-log,$(FILE)); \
-	fi
+	$(MAKE) -s LATEXSTEP=latex_postproc $@
 
 endif
 
 
 ifeq ($(LATEXSTEP),latex_postproc)
 
-%.tpt %.tpm:
-	$(QUIET)$(ECHO) Running thumbpdf for $*; \
-	thumbpdf $* $(TODEVNULL)
+define pdfifdvi
+$(shell [ "$(MAKECMDGOALS)" = "$(FILE).dvi" ] && $(ECHO) $(FILE).pdf || $(ECHO) FORCE ) 
+endef
 
-$(FILE).dvi $(FILE).pdf: FORCE
-	$(QUIET)$(call run-latex,$*,$@); \
-	$(ECHO) $(announce) Was step: post-processing ; \
+%.tpt: FORCE
+	$(QUIET)$(ECHO) Running thumbpdf for $*; \
+	thumbpdf $* $(TODEVNULL); \
+	touch $(TMPDIR)/$(FILE).thumb-done
+
+%.tpm: FORCE
+	$(QUIET)$(ECHO) Running thumbpdf for $*; \
+	$(call DVI2PDF,$*); \
+	thumbpdf --modes dvips $* $(TODEVNULL); \
+	rm -f $*.pdf; \
+	touch $(TMPDIR)/$(FILE).thumb-done
+
+define onetarget
+$(shell [ "$(MAKECMDGOALS)" = "$(FILE).dvi" ] && $(ECHO) $(FILE).dvi || $(ECHO) $(FILE).pdf ) 
+endef
+
+$(onetarget): FORCE
+	$(QUIET)if [ -f $(TMPDIR)/$(FILE).thumb-done ]; \
+	then \
+	  rm $(TMPDIR)/$(FILE).thumb-done; \
+	  $(call run-latex,$*,$@); \
+	  $(ECHO) $(announce) Was step: post-processing ; \
+	fi; \
 	$(call latex-color-log,$(FILE))
+
 else
 
 # Activate thumbpdf only at latex_postproc step
