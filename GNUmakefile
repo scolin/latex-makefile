@@ -1164,5 +1164,12 @@ define help_text
 #   - Log analysis still too verbose in case of used system-wide TeX
 #   files (such as Tikz of the pgf suite)
 #   - ...
-# Report bugs at: <>
+# Report bugs at: <scolin@hivernal.org>
+#
+# HOMEPAGE
+# Francais:
+#   http://hivernal.org/static/computing/programming/makefile-latex.fr.html
+# English:
+#   http://hivernal.org/static/computing/programming/makefile-latex.en.html
 endef
+
