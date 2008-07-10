@@ -10,6 +10,8 @@
 # 
 # Parts I added are licenced GPLv2 as well
 
+VERSION=0.7.0
+
 TMPDIR=._d
 
 ifdef FILE
@@ -1171,5 +1173,8 @@ define help_text
 #   http://hivernal.org/static/computing/programming/makefile-latex.fr.html
 # English:
 #   http://hivernal.org/static/computing/programming/makefile-latex.en.html
+#
+# VERSION
+#   $(VERSION)
 endef
 
