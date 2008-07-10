@@ -10,7 +10,7 @@
 # 
 # Parts I added are licenced GPLv2 as well
 
-VERSION=0.7.0
+VERSION=0.7.1
 
 TMPDIR=._d
 
@@ -44,20 +44,20 @@ KPSEWHICH	= kpsewhich
 # Conversion utilities
 
 define DVI2PS
-if [ `which dvips` != "" ]; \
+if [ "x`which dvips`" != "x" ]; \
 then dvips -o $1.ps $1.dvi; \
 else $(ECHO) dvips can not be found. Exiting; exit 1; \
 fi
 endef
 
 define PS2PDF
-if [ `which ps2pdf13` != "" ]; \
+if [ "x`which ps2pdf13`" != "x" ]; \
 then ps2pdf13 $1.ps $1.pdf; \
 else \
-  if [ `which ps2pdf12` != "" ]; \
+  if [ "x`which ps2pdf12`" != "x" ]; \
   then ps2pdf12 $1.ps $1.pdf; \
   else \
-    if [ `which ps2pdf` != "" ]; \
+    if [ "x`which ps2pdf`" != "x" ]; \
     then ps2pdf $1.ps $1.pdf; \
     else $(ECHO) ps2pdf13, ps2pdf12 or ps2pdf can not be found. Exiting; exit 1; \
     fi; \
@@ -66,13 +66,13 @@ fi
 endef
 
 define PS2PDF_PIPED
-if [ `which ps2pdf13` != "" ]; \
+if [ "x`which ps2pdf13`" != "x" ]; \
 then ps2pdf13 - $1.pdf; \
 else \
-  if [ `which ps2pdf12` != "" ]; \
+  if [ "x`which ps2pdf12`" != "x" ]; \
   then ps2pdf12 - $1.pdf; \
   else \
-    if [ `which ps2pdf` != "" ]; \
+    if [ "x`which ps2pdf`" != "x" ]; \
     then ps2pdf - $1.pdf; \
     else $(ECHO) ps2pdf13, ps2pdf12 or ps2pdf can not be found. Exiting; exit 1; \
     fi; \
@@ -83,22 +83,22 @@ endef
 define DVI2PDF
 if [ -f "$1".tpm ]; \
 then \
-  if [ `which dvipdf` != "" ]; \
+  if [ "x`which dvipdf`" != "x" ]; \
   then dvipdf $1.dvi $1.pdf; \
   else \
-    if [ `which dvips` != "" ]; \
+    if [ "x`which dvips`" != "x" ]; \
     then dvips -o - $1.dvi | $(call PS2PDF_PIPED,$1); \
     else $(ECHO) dvips can not be found. Exiting; exit 1; \
     fi; \
   fi; \
 else \
-  if [ `which dvipdfm` != "" ]; \
+  if [ "x`which dvipdfm`" != "x" ]; \
   then dvipdfm -o $1.pdf $1.dvi ; \
   else \
-    if [ `which dvipdf` != "" ]; \
+    if [ "x`which dvipdf`" != "x" ]; \
     then dvipdf $1.dvi $1.pdf; \
     else \
-      if [ `which dvips` != "" ]; \
+      if [ "x`which dvips`" != "x" ]; \
       then dvips -o - $1.dvi | $(call PS2PDF_PIPED,$1); \
       else $(ECHO) dvips can not be found. Exiting; exit 1; \
       fi; \
@@ -108,10 +108,10 @@ fi
 endef
 
 define PDF2PS
-if [ `which pdftops` != "" ]; \
+if [ "x`which pdftops`" != "x" ]; \
 then pdftops $1.pdf $1.ps; \
 else \
-  if [ `which pdf2ps` != "" ]; \
+  if [ "x`which pdf2ps`" != "x" ]; \
   then pdf2ps $1.pdf $1.ps; \
   else $(ECHO) pdftops or pdf2ps can not be found. Exiting; exit 1; \
   fi; \
