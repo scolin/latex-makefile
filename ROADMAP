@@ -3,7 +3,6 @@
 
 - Support for the lettre package
 - Remove unnecessarily mentioned files in the log parsing
-- Detect (or not) conversion utilities (dvips, etc)
 * Make log parsing for compilation errors uptodate with log parsing for
   warnings
 * Hevea compiling

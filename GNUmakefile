@@ -41,11 +41,88 @@ MAKEINDEX       = makeindex -q
 LATEX		= $(BARELATEX) -recorder -interaction=nonstopmode
 KPSEWHICH	= kpsewhich
 
-DVI2PS		= dvips -o $1.ps $1.dvi
-PS2PDF		= ps2pdf13 $1.ps $1.pdf
-DVI2PDF		= dvipdf $1.dvi $1.pdf
-DVI2PDFLINKS	= dvipdfm -o $1.pdf $1.dvi
-PDF2PS		= pdftops $1.pdf $1.ps
+# Conversion utilities
+
+define DVI2PS
+if [ `which dvips` != "" ]; \
+then dvips -o $1.ps $1.dvi; \
+else $(ECHO) dvips can not be found. Exiting; exit 1; \
+fi
+endef
+
+define PS2PDF
+if [ `which ps2pdf13` != "" ]; \
+then ps2pdf13 $1.ps $1.pdf; \
+else \
+  if [ `which ps2pdf12` != "" ]; \
+  then ps2pdf12 $1.ps $1.pdf; \
+  else \
+    if [ `which ps2pdf` != "" ]; \
+    then ps2pdf $1.ps $1.pdf; \
+    else $(ECHO) ps2pdf13, ps2pdf12 or ps2pdf can not be found. Exiting; exit 1; \
+    fi; \
+  fi; \
+fi
+endef
+
+define PS2PDF_PIPED
+if [ `which ps2pdf13` != "" ]; \
+then ps2pdf13 - $1.pdf; \
+else \
+  if [ `which ps2pdf12` != "" ]; \
+  then ps2pdf12 - $1.pdf; \
+  else \
+    if [ `which ps2pdf` != "" ]; \
+    then ps2pdf - $1.pdf; \
+    else $(ECHO) ps2pdf13, ps2pdf12 or ps2pdf can not be found. Exiting; exit 1; \
+    fi; \
+  fi; \
+fi
+endef
+
+define DVI2PDF
+if [ -f "$1".tpm ]; \
+then \
+  if [ `which dvipdf` != "" ]; \
+  then dvipdf $1.dvi $1.pdf; \
+  else \
+    if [ `which dvips` != "" ]; \
+    then dvips -o - $1.dvi | $(call PS2PDF_PIPED,$1); \
+    else $(ECHO) dvips can not be found. Exiting; exit 1; \
+    fi; \
+  fi; \
+else \
+  if [ `which dvipdfm` != "" ]; \
+  then dvipdfm -o $1.pdf $1.dvi ; \
+  else \
+    if [ `which dvipdf` != "" ]; \
+    then dvipdf $1.dvi $1.pdf; \
+    else \
+      if [ `which dvips` != "" ]; \
+      then dvips -o - $1.dvi | $(call PS2PDF_PIPED,$1); \
+      else $(ECHO) dvips can not be found. Exiting; exit 1; \
+      fi; \
+    fi; \
+  fi; \
+fi
+endef
+
+define PDF2PS
+if [ `which pdftops` != "" ]; \
+then pdftops $1.pdf $1.ps; \
+else \
+  if [ `which pdf2ps` != "" ]; \
+  then pdf2ps $1.pdf $1.ps; \
+  else $(ECHO) pdftops or pdf2ps can not be found. Exiting; exit 1; \
+  fi; \
+fi
+endef
+
+# DVI2PS		= dvips -o $1.ps $1.dvi
+# PS2PDF		= ps2pdf13 $1.ps $1.pdf
+# DVI2PDF		= dvipdf $1.dvi $1.pdf
+# DVI2PDFLINKS	= dvipdfm -o $1.pdf $1.dvi
+# PDF2PS		= pdftops $1.pdf $1.ps
 
 HEVEA           = hevea $(HEVEAFLAGS)
 # Glosstex, also ?
