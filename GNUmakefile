@@ -7,7 +7,7 @@
 # from it are licenced under the GPLv2
 # (http://www.gnu.org/copyleft/gpl.html) under the following terms,
 # copied verbatim from the original Makefile
-# 
+#
 # Parts I added are licenced GPLv2 as well
 
 VERSION=0.7.1
@@ -200,21 +200,21 @@ endif
 # files when cleaning
 LATEXCLEAN = $(FILE).log $(FILE).out $(FILE).aux $(FILE).fls
 LATEXCLEAN+= $(FILE).blg
-LATEXCLEAN+= $(FILE).idx $(FILE).ilg $(FILE).ist 
+LATEXCLEAN+= $(FILE).idx $(FILE).ilg $(FILE).ist
 LATEXCLEAN+= $(FILE).glo $(FILE).glg
 LATEXCLEAN+= $(FILE).toc $(FILE).lof $(FILE).lot
 LATEXCLEAN+= $(FILE).maf
 LATEXCLEAN+= $(FILE).ptc* $(FILE).plf* $(FILE).plt*
 LATEXCLEAN+= $(FILE).mtc* $(FILE).mlf* $(FILE).mlt*
 LATEXCLEAN+= $(FILE).stc* $(FILE).slf* $(FILE).slt*
-LATEXCLEAN+= $(FILE).nav $(FILE).snm  $(FILE).vrb 
+LATEXCLEAN+= $(FILE).nav $(FILE).snm  $(FILE).vrb
 LATEXCLEAN+= *.aux *.blg
 LATEXCLEAN+= $(FILE).haux $(FILE).htoc
 
 LATEXCLEAN+= $(MORECLEAN)
 
 # MOREPURGE: see MORECLEAN, but for the purge target
-LATEXPURGE = $(FILE).ps $(FILE).dvi $(FILE).pdf 
+LATEXPURGE = $(FILE).ps $(FILE).dvi $(FILE).pdf
 LATEXPURGE+= $(FILE).bbl $(FILE).ind $(FILE).gls
 LATEXPURGE+= bu*.bbl
 LATEXPURGE+= $(FILE).html
@@ -309,9 +309,9 @@ endef
 #            glo,gls,idx,ind,ist,aux
 
 # This function will get the generated files and add them to the
-# cleaning lists 
+# cleaning lists
 # $(call update_clean_file,<stem>)
-# 
+#
 define update_clean_file
 egrep '^OUTPUT' $(TMPDIR)/$1.fls | \
 $(SED) -e 's/^OUTPUT //' | \
@@ -321,9 +321,9 @@ $(call update_file,$(TMPDIR)/$1.clean)
 endef
 
 # This function will get the generated files and add them to the
-# cleaning lists 
+# cleaning lists
 # $(call update_clean_file,<stem>)
-# 
+#
 define update_purge_file
 egrep '^OUTPUT' $(TMPDIR)/$1.fls | \
 $(SED) -e 's/^OUTPUT //' | \
@@ -351,7 +351,7 @@ endef
 # Note: nested "call" works here because the parameters are known
 # statically
 
-# $(call get-bbl-deps,<stem>,,<targets>) 
+# $(call get-bbl-deps,<stem>,,<targets>)
 # We exploit the fact that a bbl appearing in the .fls is not "No
 # file" in the .log, and vice-versa
 #
@@ -638,7 +638,7 @@ endef
 # BibTeX invocations
 #
 # $(call run-bibtex,<tex stem>)
-define run-bibtex 
+define run-bibtex
 $(ECHO) Running BibTeX on $1; \
 $(BIBTEX) $1 $(TODEVNULL)
 endef
@@ -837,7 +837,7 @@ ifndef LATEXSTEP
 	  $(ECHO) $(announce) Now compiling $*.pdf; \
 	  $(MAKE) -s LATEXSTEP=latex_pdf $@; \
 	;; \
-	esac 
+	esac
 
 %.dvi: FORCE
 	$(QUIET)$(ECHO) $(separator); \
@@ -860,7 +860,7 @@ ifndef LATEXSTEP
 	  $(ECHO) $(announce) Now compiling $*.dvi; \
 	  $(MAKE) -s LATEXSTEP=latex_dvi $@; \
 	;; \
-	esac 
+	esac
 
 %.ps: FORCE
 	$(QUIET)$(ECHO) $(separator); \
@@ -883,12 +883,12 @@ ifndef LATEXSTEP
 	  $(ECHO) $(announce) Now compiling $*.pdf; \
 	  $(MAKE) -s LATEXSTEP=latex_pdf $@; \
 	;; \
-	esac 
+	esac
 
 endif
 
 
-.SUFFIXES: 
+.SUFFIXES:
 .SUFFIXES: .tex .dvi .ps .pdf .html .aux .deps .vars \
 .idx .ind .gls .glo .ist .bbl \
 .auxbbl .auxbbl.cookie \
@@ -1031,7 +1031,7 @@ $(FILE).dvi $(FILE).pdf: FORCE
 	  $(MAKE) -s LATEXSTEP=latex_index $@; \
 	else \
 	  $(MAKE) -s LATEXSTEP=latex_bib $@; \
-	fi; 
+	fi;
 
 endif
 
@@ -1093,7 +1093,7 @@ endif
 ifeq ($(LATEXSTEP),latex_postproc)
 
 define pdfifdvi
-$(shell [ "$(MAKECMDGOALS)" = "$(FILE).dvi" ] && $(ECHO) $(FILE).pdf || $(ECHO) FORCE ) 
+$(shell [ "$(MAKECMDGOALS)" = "$(FILE).dvi" ] && $(ECHO) $(FILE).pdf || $(ECHO) FORCE )
 endef
 
 %.tpt: FORCE
@@ -1109,7 +1109,7 @@ endef
 	touch $(TMPDIR)/$(FILE).thumb-done
 
 define onetarget
-$(shell [ "$(MAKECMDGOALS)" = "$(FILE).dvi" ] && $(ECHO) $(FILE).dvi || $(ECHO) $(FILE).pdf ) 
+$(shell [ "$(MAKECMDGOALS)" = "$(FILE).dvi" ] && $(ECHO) $(FILE).dvi || $(ECHO) $(FILE).pdf )
 endef
 
 $(onetarget): FORCE
