@@ -650,7 +650,7 @@ endef
 
 # $(call test-rerun,<source stem>)
 define test-rerun
-egrep -q '^(.*Rerun .*|LaTeX Warning: There were undefined references\.)$$' $(TMPDIR)/$1.log
+egrep -q '^LaTeX Warning: (.*Rerun .*|There were undefined references\.)$$' $(TMPDIR)/$1.log
 endef
 
 # Will create the stem.deps dependencies file
