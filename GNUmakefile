@@ -1024,11 +1024,18 @@ ifeq ($(LATEXSTEP),latex_index)
 $(FILE).dvi $(FILE).pdf: FORCE
 	$(QUIET)if [ -f $(TMPDIR)/$(FILE).index-done ]; \
 	then \
+	  indexhascites=0; \
 	  egrep '\\cite\>' `cat $(TMPDIR)/$(FILE).index-done` $(TODEVNULL); \
-	  if [ $$? -eq 0 ]; then $(call run-latex,$*,$@); fi; \
+	  if [ $$? -eq 0 ]; then indexhascites=1; fi; \
+	  $(call run-latex,$*,$@); \
 	  rm $(TMPDIR)/$(FILE).index-done; \
 	  $(ECHO) $(announce) Was step: index, glossaries; \
-	  $(MAKE) -s LATEXSTEP=latex_index $@; \
+	  if [ $$indexhascites -eq 1 ]; \
+	  then \
+	    $(MAKE) -s LATEXSTEP=latex_index $@; \
+	  else \
+	    $(MAKE) -s LATEXSTEP=latex_bib $@; \
+	  fi; \
 	else \
 	  $(MAKE) -s LATEXSTEP=latex_bib $@; \
 	fi;
