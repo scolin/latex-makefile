@@ -10,7 +10,7 @@
 #
 # Parts I added are licenced GPLv2 as well
 
-VERSION=0.7.1
+VERSION=0.7.2
 
 TMPDIR=._d
 
